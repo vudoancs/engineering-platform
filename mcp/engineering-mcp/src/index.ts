@@ -35,10 +35,14 @@ export {
 } from "./security/index.js";
 export {
   createConfluenceTools,
+  createEngineeringTools,
+  createGovernanceTools,
   createGitHubTools,
   createJiraTools,
   createToolContext,
   CONFLUENCE_TOOL_NAMES,
+  ENGINEERING_TOOL_NAMES,
+  GOVERNANCE_TOOL_NAMES,
   GITHUB_TOOL_NAMES,
   JIRA_TOOL_NAMES,
   type EngineeringTool,
@@ -89,3 +93,12 @@ export {
   ConfluenceUnavailableError,
   ConfluenceValidationError,
 } from "./integrations/confluence/index.js";
+export {
+  EngineeringService,
+  DeliveryService,
+  SprintService,
+  TeamService,
+  RiskService,
+  EngineeringError,
+  EngineeringValidationError,
+} from "./services/engineering/index.js";

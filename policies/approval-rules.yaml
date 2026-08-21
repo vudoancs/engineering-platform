@@ -1,0 +1,41 @@
+# Approval requirements for high-risk actions.
+# Conditions under "require" are reserved for future enforcement gates.
+
+rules:
+  - action: MERGE_PULL_REQUEST
+    require:
+      - ci_passed
+      - no_unresolved_review_comments
+    approval:
+      required: true
+      minimumApprovers: 1
+
+  - action: DEPLOY_PRODUCTION
+    approval:
+      required: true
+      minimumApprovers: 1
+
+  - action: DATABASE_MIGRATION
+    approval:
+      required: true
+      minimumApprovers: 1
+
+  - action: DEPLOY_STAGING
+    approval:
+      required: true
+      minimumApprovers: 1
+
+  - action: UPDATE_JIRA
+    approval:
+      required: true
+      minimumApprovers: 1
+
+  - action: UPDATE_CONFLUENCE
+    approval:
+      required: true
+      minimumApprovers: 1
+
+  - action: EXECUTE_SHELL
+    approval:
+      required: true
+      minimumApprovers: 1

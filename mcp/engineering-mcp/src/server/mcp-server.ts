@@ -4,6 +4,11 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import {
+  GovernanceError,
+  GovernanceService,
+  type GovernanceService as GovernanceServiceType,
+} from "engineering-platform/governance";
+import {
   hasConfluenceCredentials,
   hasGitHubCredentials,
   hasJiraCredentials,
@@ -27,10 +32,14 @@ import {
   JiraService,
 } from "../integrations/jira/jira.service.js";
 import { PermissionService } from "../security/permission.service.js";
+import { EngineeringError } from "../services/engineering/engineering.errors.js";
+import { EngineeringService } from "../services/engineering/engineering.service.js";
 import { HealthService } from "../services/health.service.js";
 import { Logger } from "../services/logger.js";
 import { ProjectContextService } from "../services/project-context.service.js";
 import { createConfluenceTools } from "../tools/confluence/index.js";
+import { createEngineeringTools } from "../tools/engineering/index.js";
+import { createGovernanceTools } from "../tools/governance/index.js";
 import { createGitHubTools } from "../tools/github/index.js";
 import { createJiraTools } from "../tools/jira/index.js";
 import { createToolContext } from "../tools/tool-context.js";
@@ -48,18 +57,23 @@ export interface EngineeringMcpRuntime {
   jira: JiraService;
   github: GitHubService;
   confluence: ConfluenceService;
+  engineering: EngineeringService;
+  governance: GovernanceServiceType;
   server: McpServer;
 }
 
 export interface McpServerFactoryOptions {
   env?: NodeJS.ProcessEnv;
   projectsDir?: string;
+  policiesDir?: string;
   logger?: Logger;
   toolRegistry?: ToolRegistry;
   resourceRegistry?: ResourceRegistry;
   jiraService?: JiraService;
   githubService?: GitHubService;
   confluenceService?: ConfluenceService;
+  engineeringService?: EngineeringService;
+  governanceService?: GovernanceServiceType;
 }
 
 /**
@@ -80,9 +94,31 @@ export class McpServerFactory {
       config.PROJECTS_DIR ??
       resolveDefaultProjectsDir();
 
+    const policiesDir =
+      options.policiesDir ??
+      config.POLICIES_DIR ??
+      resolveDefaultPoliciesDir();
+
     const projects = ProjectContextService.createDefault(projectsDir);
     const permissions = new PermissionService({ readOnly: config.MCP_READ_ONLY });
     const health = new HealthService();
+
+    const projectConfigService = projects.getProjectConfigService();
+    const isProjectKnown = (projectId: string): boolean => {
+      try {
+        projectConfigService.getProject(projectId);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    const governance =
+      options.governanceService ??
+      GovernanceService.loadFromDirectory({
+        policiesDir,
+        isProjectKnown,
+      });
 
     const jira =
       options.jiraService ??
@@ -141,6 +177,22 @@ export class McpServerFactory {
         maxPageSizeBytes: config.CONFLUENCE_MAX_PAGE_SIZE_BYTES,
       });
 
+    const engineering =
+      options.engineeringService ??
+      new EngineeringService({
+        jira,
+        github,
+        confluence,
+        projectConfigService: projects.getProjectConfigService(),
+        thresholds: {
+          staleDays: config.ENGINEERING_STALE_DAYS,
+          prStaleHours: config.PR_STALE_HOURS,
+          prHighRiskHours: config.PR_HIGH_RISK_HOURS,
+          prLargeChanges: config.PR_LARGE_CHANGES,
+          prReviewWaitingHours: config.PR_REVIEW_WAITING_HOURS,
+        },
+      });
+
     const tools = options.toolRegistry ?? new ToolRegistry();
     if (!options.toolRegistry) {
       for (const tool of createJiraTools()) {
@@ -150,6 +202,12 @@ export class McpServerFactory {
         tools.register(tool);
       }
       for (const tool of createConfluenceTools()) {
+        tools.register(tool);
+      }
+      for (const tool of createEngineeringTools()) {
+        tools.register(tool);
+      }
+      for (const tool of createGovernanceTools()) {
         tools.register(tool);
       }
     }
@@ -169,6 +227,8 @@ export class McpServerFactory {
       jira,
       github,
       confluence,
+      engineering,
+      governance,
     };
 
     this.applyTools(server, tools, deps);
@@ -183,7 +243,9 @@ export class McpServerFactory {
       jiraConfigured: jira.isConfigured(),
       githubConfigured: github.isConfigured(),
       confluenceConfigured: confluence.isConfigured(),
+      governanceFailClosed: governance.isFailClosed(),
       projectsDir,
+      policiesDir,
     });
 
     return {
@@ -197,6 +259,8 @@ export class McpServerFactory {
       jira,
       github,
       confluence,
+      engineering,
+      governance,
       server,
     };
   }
@@ -221,6 +285,8 @@ export class McpServerFactory {
       jira: JiraService;
       github: GitHubService;
       confluence: ConfluenceService;
+      engineering: EngineeringService;
+      governance: GovernanceServiceType;
     },
   ): void {
     for (const tool of tools.list()) {
@@ -260,6 +326,8 @@ export class McpServerFactory {
             return result;
           } catch (error) {
             const errorCode =
+              error instanceof GovernanceError ||
+              error instanceof EngineeringError ||
               error instanceof ConfluenceError ||
               error instanceof GitHubError ||
               error instanceof JiraError
@@ -278,6 +346,8 @@ export class McpServerFactory {
             });
 
             const message =
+              error instanceof GovernanceError ||
+              error instanceof EngineeringError ||
               error instanceof ConfluenceError ||
               error instanceof GitHubError ||
               error instanceof JiraError
@@ -308,6 +378,8 @@ export class McpServerFactory {
       jira: JiraService;
       github: GitHubService;
       confluence: ConfluenceService;
+      engineering: EngineeringService;
+      governance: GovernanceServiceType;
     },
   ): void {
     for (const resource of resources.list()) {
@@ -332,4 +404,9 @@ export class McpServerFactory {
 function resolveDefaultProjectsDir(): string {
   const here = path.dirname(fileURLToPath(import.meta.url));
   return path.resolve(here, "../../../../projects");
+}
+
+function resolveDefaultPoliciesDir(): string {
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  return path.resolve(here, "../../../../policies");
 }

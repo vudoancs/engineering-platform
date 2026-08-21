@@ -11,8 +11,9 @@ This package is an AI access layer. It is **not** a Jira/GitHub/Confluence datab
 - Jira (READ-ONLY)
 - GitHub (READ-ONLY)
 - Confluence (READ-ONLY)
-- Engineering Intelligence (planned)
-- Governance (planned)
+- Engineering Intelligence (READ-ONLY aggregation)
+- Governance (deterministic policy / fail closed)
+- Workflows (planned)
 
 ## Architecture
 
@@ -27,6 +28,10 @@ Integrations
     ├── Jira (READ-ONLY)
     ├── GitHub (READ-ONLY)
     └── Confluence (READ-ONLY)
+         ↓
+Engineering Intelligence (aggregation / domain)
+         ↓
+Governance (policy evaluate — fail closed)
 ```
 
 ## Project awareness
@@ -246,6 +251,139 @@ Pages outside the configured space are rejected.
 - Cross-space access raises `CONFLUENCE_PROJECT_BOUNDARY_VIOLATION`
 - Search CQL is built server-side and always includes the project space filter
 
+## Engineering Intelligence
+
+Engineering Intelligence is a **domain aggregation layer**, not another HTTP integration.
+
+| Source | Role |
+|--------|------|
+| Jira | Work items / sprint / blockers |
+| GitHub | Code delivery / PRs / CI / contributors |
+| Confluence | Documentation signals |
+
+```text
+AI Client
+  ↓
+Engineering Intelligence tools
+  ↓
+EngineeringService
+  ↓
+JiraService / GitHubService / ConfluenceService
+```
+
+It must **not** call Jira/GitHub/Confluence HTTP APIs directly. It is deterministic (no LLM).
+
+### Environment (thresholds)
+
+```env
+PR_STALE_HOURS=48
+PR_HIGH_RISK_HOURS=72
+PR_LARGE_CHANGES=500
+PR_REVIEW_WAITING_HOURS=24
+ENGINEERING_STALE_DAYS=7
+```
+
+### Tools
+
+| Tool | Purpose |
+|------|---------|
+| `engineering_get_project_status` | Project snapshot (work, delivery, quality, docs, risks) |
+| `engineering_get_sprint_status` | Sprint progress (+ openSprints fallback) |
+| `engineering_get_team_status` | Operational assignees/contributors (not performance ranking) |
+| `engineering_get_delivery_status` | Jira + GitHub delivery aggregation |
+| `engineering_get_stale_work` | Non-done issues not updated for N days |
+| `engineering_get_blocked_work` | Explicitly blocked issues only |
+| `engineering_get_pr_status` | PR review/CI/risk + Jira key correlation |
+| `engineering_get_risk_report` | Deterministic risk report with evidence |
+
+### Example calls
+
+`engineering_get_project_status`
+
+```json
+{
+  "projectId": "kygo"
+}
+```
+
+`engineering_get_delivery_status`
+
+```json
+{
+  "projectId": "kygo"
+}
+```
+
+`engineering_get_pr_status`
+
+```json
+{
+  "projectId": "kygo",
+  "state": "open"
+}
+```
+
+### Degradation
+
+When a source is missing or fails, aggregate responses include `sources` health (`ok` / `degraded` / `unavailable` / `not_configured`) and section-level `status: "unknown"` — they do not invent metrics.
+
+### Risk rules (deterministic)
+
+- `BLOCKED_TICKET` → high
+- `STALE_TICKET` → medium
+- `PR_CI_FAILED` / `PR_CHANGES_REQUESTED` / old PR → high
+- `PR_STALE` / `PR_REVIEW_OVERDUE` → medium
+- `LARGE_PR` → low/medium
+
+## Governance
+
+AI is **not trusted by default**. Governance is a deterministic policy layer (no LLM).
+
+- Read operations are allowed by policy
+- Mutating operations require policy evaluation
+- High-risk operations require human approval
+- Destructive operations are denied
+- Unknown actions and invalid policies **fail closed** (DENY)
+
+```text
+AI Agent
+   ↓
+Tool request
+   ↓
+GovernanceService.evaluate
+   ↓
+ALLOW | HUMAN_APPROVAL | DENY
+   ↓
+Approval (metadata only in v1)
+   ↓
+Execution (future write tools — not implemented yet)
+```
+
+Policies live in platform `policies/`:
+
+- `permissions.yaml`
+- `approval-rules.yaml`
+- `governance.yaml`
+
+### MCP tool
+
+`engineering_check_permission`
+
+```json
+{
+  "projectId": "kygo",
+  "action": "MERGE_PULL_REQUEST",
+  "context": {
+    "repository": "kygo",
+    "pullRequestNumber": 123
+  }
+}
+```
+
+Returns `{ decision, action, projectId, riskLevel, requiresApproval, reason }`.
+
+This tool does **not** execute merges/deploys/writes — it only evaluates policy.
+
 ## Read-only mode
 
 Default:
@@ -261,14 +399,15 @@ MCP_READ_ONLY=true
 | DELETE  | denied                                    |
 | EXECUTE | denied                                    |
 
-Jira, GitHub, and Confluence tools in this phase only require `READ`.
+Jira, GitHub, Confluence, Engineering Intelligence, and Governance probe tools in this phase only require `READ`.
 
 ## Security model
 
 - Credentials never belong in project YAML files
 - Do not log tokens, passwords, or authorization headers
 - Write/delete/execute are denied by default
-- Jira, GitHub, and Confluence tools enforce project boundary checks
+- Integration tools enforce project boundaries; Engineering Intelligence aggregates within those boundaries
+- Governance evaluates actions fail-closed; future write tools must call `GovernanceService` before execution
 
 ## How to run locally
 

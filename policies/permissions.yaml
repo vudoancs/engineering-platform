@@ -1,0 +1,58 @@
+# Action permission matrix for AI agents.
+# Decisions are loaded at runtime — do not duplicate in application code.
+#
+# decision: ALLOW | HUMAN_APPROVAL | DENY
+# riskLevel: LOW | MEDIUM | HIGH | CRITICAL
+
+actions:
+  READ_JIRA:
+    decision: ALLOW
+    riskLevel: LOW
+
+  READ_GITHUB:
+    decision: ALLOW
+    riskLevel: LOW
+
+  READ_CONFLUENCE:
+    decision: ALLOW
+    riskLevel: LOW
+
+  CREATE_BRANCH:
+    decision: ALLOW
+    riskLevel: LOW
+
+  CREATE_PULL_REQUEST:
+    decision: ALLOW
+    riskLevel: MEDIUM
+
+  UPDATE_JIRA:
+    decision: HUMAN_APPROVAL
+    riskLevel: MEDIUM
+
+  UPDATE_CONFLUENCE:
+    decision: HUMAN_APPROVAL
+    riskLevel: MEDIUM
+
+  MERGE_PULL_REQUEST:
+    decision: HUMAN_APPROVAL
+    riskLevel: HIGH
+
+  DEPLOY_STAGING:
+    decision: HUMAN_APPROVAL
+    riskLevel: HIGH
+
+  DEPLOY_PRODUCTION:
+    decision: HUMAN_APPROVAL
+    riskLevel: CRITICAL
+
+  DATABASE_MIGRATION:
+    decision: HUMAN_APPROVAL
+    riskLevel: CRITICAL
+
+  DELETE_RESOURCE:
+    decision: DENY
+    riskLevel: CRITICAL
+
+  EXECUTE_SHELL:
+    decision: HUMAN_APPROVAL
+    riskLevel: HIGH
