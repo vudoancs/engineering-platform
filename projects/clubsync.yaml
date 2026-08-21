@@ -1,0 +1,25 @@
+# ClubSync project configuration
+#
+# SECURITY: Do NOT store credentials in this file.
+# No API tokens, passwords, secrets, private keys, or OAuth credentials.
+# Credentials belong in environment variables or secret management.
+#
+# This file contains routing metadata only.
+
+id: clubsync
+name: ClubSync
+description: ClubSync engineering project
+
+jira:
+  projectKey: CLUBSYNC
+
+github:
+  organization: your-github-org
+  repositories:
+    - clubsync
+
+confluence:
+  spaceKey: CLUBSYNC
+
+settings:
+  enabled: true
