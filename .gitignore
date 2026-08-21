@@ -1,0 +1,136 @@
+# ============================================
+# Dependencies
+# ============================================
+node_modules/
+.pnpm-store/
+.npm/
+.yarn/
+.yarn-cache/
+
+# ============================================
+# Environment & Secrets
+# ============================================
+.env
+.env.*
+!.env.example
+
+# API keys / credentials
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets/
+credentials/
+.secrets/
+
+# ============================================
+# Build / Compilation
+# ============================================
+dist/
+build/
+out/
+.next/
+.nuxt/
+coverage/
+.tmp/
+temp/
+
+# TypeScript
+*.tsbuildinfo
+
+# ============================================
+# Logs
+# ============================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# ============================================
+# Runtime
+# ============================================
+*.pid
+*.pid.lock
+
+# ============================================
+# IDE / Editors
+# ============================================
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+.idea/
+*.iml
+
+# Cursor
+.cursor/*
+!.cursor/rules/
+
+# ============================================
+# OS
+# ============================================
+.DS_Store
+Thumbs.db
+
+# ============================================
+# Testing
+# ============================================
+.nyc_output/
+.jest/
+playwright-report/
+test-results/
+
+# ============================================
+# Docker
+# ============================================
+docker-compose.override.yml
+
+# ============================================
+# Database / Local data
+# ============================================
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# ============================================
+# AI / Agent local state
+# ============================================
+.agent/
+.agents/
+.agent-cache/
+.ai/
+.ai-cache/
+.mcp/
+.mcp-cache/
+
+# Local agent sessions / runtime state
+sessions/
+runtime/
+state/
+
+# ============================================
+# Temporary files
+# ============================================
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# ============================================
+# Archives
+# ============================================
+*.zip
+*.tar
+*.tar.gz
+
+# ============================================
+# Generated files
+# ============================================
+generated/
+artifacts/
