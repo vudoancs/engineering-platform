@@ -1,5 +1,6 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
+import type { AgentService } from "engineering-platform/agents";
 import { EngineeringError } from "../../services/engineering/engineering.errors.js";
 import type { EngineeringService } from "../../services/engineering/engineering.service.js";
 import type { EngineeringTool } from "../types.js";
@@ -18,6 +19,15 @@ function requireEngineering(context: ToolContext): EngineeringService {
     });
   }
   return context.engineering;
+}
+
+function requireAgents(context: ToolContext): AgentService {
+  if (!context.agents) {
+    throw new EngineeringError("Agent service is unavailable in this runtime.", {
+      code: "ENGINEERING_ERROR",
+    });
+  }
+  return context.agents;
 }
 
 function withReadPermission(tool: EngineeringTool): EngineeringTool {
@@ -141,6 +151,16 @@ export function createEngineeringTools(): EngineeringTool[] {
         return jsonResult(await requireEngineering(context).getRiskReport(parsed.projectId));
       },
     }),
+    withReadPermission({
+      name: "engineering_list_agents",
+      description:
+        "List configured platform agents (id, name, role, governanceProfile). Does not expose full instructions.",
+      inputSchema: z.object({}),
+      execute: async (context) => {
+        const agents = requireAgents(context).listAgents();
+        return jsonResult({ agents });
+      },
+    }),
   ];
 }
 
@@ -153,4 +173,5 @@ export const ENGINEERING_TOOL_NAMES = [
   "engineering_get_blocked_work",
   "engineering_get_pr_status",
   "engineering_get_risk_report",
+  "engineering_list_agents",
 ] as const;

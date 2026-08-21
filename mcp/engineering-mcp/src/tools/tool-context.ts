@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { AgentService } from "engineering-platform/agents";
 import type { GovernanceService } from "engineering-platform/governance";
 import type { McpEnvConfig } from "../config/env.config.js";
 import type { ConfluenceService } from "../integrations/confluence/confluence.service.js";
@@ -25,6 +26,7 @@ export interface ToolContext {
   confluence: ConfluenceService | null;
   engineering: EngineeringService | null;
   governance: GovernanceService | null;
+  agents: AgentService | null;
 }
 
 export interface CreateToolContextInput {
@@ -37,6 +39,7 @@ export interface CreateToolContextInput {
   confluence?: ConfluenceService | null;
   engineering?: EngineeringService | null;
   governance?: GovernanceService | null;
+  agents?: AgentService | null;
   projectId?: string;
   requestId?: string;
 }
@@ -54,5 +57,6 @@ export function createToolContext(input: CreateToolContextInput): ToolContext {
     confluence: input.confluence ?? null,
     engineering: input.engineering ?? null,
     governance: input.governance ?? null,
+    agents: input.agents ?? null,
   };
 }

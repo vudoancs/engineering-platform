@@ -13,6 +13,7 @@ This package is an AI access layer. It is **not** a Jira/GitHub/Confluence datab
 - Confluence (READ-ONLY)
 - Engineering Intelligence (READ-ONLY aggregation)
 - Governance (deterministic policy / fail closed)
+- Agents (definitions / allowlists — no autonomous runtime)
 - Workflows (planned)
 
 ## Architecture
@@ -295,6 +296,7 @@ ENGINEERING_STALE_DAYS=7
 | `engineering_get_blocked_work` | Explicitly blocked issues only |
 | `engineering_get_pr_status` | PR review/CI/risk + Jira key correlation |
 | `engineering_get_risk_report` | Deterministic risk report with evidence |
+| `engineering_list_agents` | List configured agents (id/name/role/governanceProfile; no instructions) |
 
 ### Example calls
 
@@ -334,6 +336,28 @@ When a source is missing or fails, aggregate responses include `sources` health 
 - `PR_CI_FAILED` / `PR_CHANGES_REQUESTED` / old PR → high
 - `PR_STALE` / `PR_REVIEW_OVERDUE` → medium
 - `LARGE_PR` → low/medium
+
+## Agents
+
+Agents are **definitions + policy**, not always-on autonomous services. Config lives in the platform `agents/` directory (`agent.yaml` + `instructions.md`).
+
+```text
+Agent
+ ↓
+MCP
+ ↓
+Governance
+ ↓
+External Systems
+```
+
+| Agent | Purpose |
+|------|---------|
+| `engineering-manager` | Delivery / risk / blocked-stale / management reports |
+| `developer` | Requirements + code/PR inspection + implementation proposals (READ-ONLY) |
+| `reviewer` | Structured PR review (does not approve/merge) |
+
+MCP tool `engineering_list_agents` returns summaries only. Tool allowlists are enforced in `AgentService` / `AgentPolicy` (code), not only by prompts. Set `AGENTS_DIR` to override the default path.
 
 ## Governance
 

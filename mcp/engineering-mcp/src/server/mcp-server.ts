@@ -4,6 +4,11 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import {
+  AgentService,
+  type AgentService as AgentServiceType,
+  DEFAULT_KNOWN_MCP_TOOLS,
+} from "engineering-platform/agents";
+import {
   GovernanceError,
   GovernanceService,
   type GovernanceService as GovernanceServiceType,
@@ -59,6 +64,7 @@ export interface EngineeringMcpRuntime {
   confluence: ConfluenceService;
   engineering: EngineeringService;
   governance: GovernanceServiceType;
+  agents: AgentServiceType;
   server: McpServer;
 }
 
@@ -66,6 +72,7 @@ export interface McpServerFactoryOptions {
   env?: NodeJS.ProcessEnv;
   projectsDir?: string;
   policiesDir?: string;
+  agentsDir?: string;
   logger?: Logger;
   toolRegistry?: ToolRegistry;
   resourceRegistry?: ResourceRegistry;
@@ -74,6 +81,7 @@ export interface McpServerFactoryOptions {
   confluenceService?: ConfluenceService;
   engineeringService?: EngineeringService;
   governanceService?: GovernanceServiceType;
+  agentService?: AgentServiceType;
 }
 
 /**
@@ -99,6 +107,11 @@ export class McpServerFactory {
       config.POLICIES_DIR ??
       resolveDefaultPoliciesDir();
 
+    const agentsDir =
+      options.agentsDir ??
+      config.AGENTS_DIR ??
+      resolveDefaultAgentsDir();
+
     const projects = ProjectContextService.createDefault(projectsDir);
     const permissions = new PermissionService({ readOnly: config.MCP_READ_ONLY });
     const health = new HealthService();
@@ -118,6 +131,17 @@ export class McpServerFactory {
       GovernanceService.loadFromDirectory({
         policiesDir,
         isProjectKnown,
+      });
+
+    const agents =
+      options.agentService ??
+      AgentService.loadFromDirectory({
+        agentsDir,
+        knownTools: DEFAULT_KNOWN_MCP_TOOLS,
+        policy: {
+          governance,
+          isProjectKnown,
+        },
       });
 
     const jira =
@@ -229,6 +253,7 @@ export class McpServerFactory {
       confluence,
       engineering,
       governance,
+      agents,
     };
 
     this.applyTools(server, tools, deps);
@@ -244,8 +269,10 @@ export class McpServerFactory {
       githubConfigured: github.isConfigured(),
       confluenceConfigured: confluence.isConfigured(),
       governanceFailClosed: governance.isFailClosed(),
+      agentCount: agents.listAgents().length,
       projectsDir,
       policiesDir,
+      agentsDir,
     });
 
     return {
@@ -261,6 +288,7 @@ export class McpServerFactory {
       confluence,
       engineering,
       governance,
+      agents,
       server,
     };
   }
@@ -287,6 +315,7 @@ export class McpServerFactory {
       confluence: ConfluenceService;
       engineering: EngineeringService;
       governance: GovernanceServiceType;
+      agents: AgentServiceType;
     },
   ): void {
     for (const tool of tools.list()) {
@@ -380,6 +409,7 @@ export class McpServerFactory {
       confluence: ConfluenceService;
       engineering: EngineeringService;
       governance: GovernanceServiceType;
+      agents: AgentServiceType;
     },
   ): void {
     for (const resource of resources.list()) {
@@ -409,4 +439,9 @@ function resolveDefaultProjectsDir(): string {
 function resolveDefaultPoliciesDir(): string {
   const here = path.dirname(fileURLToPath(import.meta.url));
   return path.resolve(here, "../../../../policies");
+}
+
+function resolveDefaultAgentsDir(): string {
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  return path.resolve(here, "../../../../agents");
 }
