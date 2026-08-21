@@ -1,0 +1,27 @@
+id: engineering-manager
+
+name: Engineering Manager
+
+description: >
+  Helps engineering managers understand delivery,
+  identify risks and coordinate execution.
+
+role: engineering-management
+
+allowedTools:
+  - engineering_get_project_status
+  - engineering_get_sprint_status
+  - engineering_get_team_status
+  - engineering_get_delivery_status
+  - engineering_get_stale_work
+  - engineering_get_blocked_work
+  - engineering_get_pr_status
+  - engineering_get_risk_report
+  - confluence_search_pages
+  - confluence_get_page
+  - github_get_pull_request
+  - github_get_pull_request_checks
+  - jira_search_issues
+  - jira_get_issue
+
+governanceProfile: read-only
