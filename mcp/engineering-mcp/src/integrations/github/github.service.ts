@@ -26,6 +26,11 @@ import {
   mapRepositorySummary,
   mapReview,
 } from "./github.mapper.js";
+import {
+  githubCreateBranch,
+  githubCreatePullRequest,
+  githubGetBranchSha,
+} from "./github.write.js";
 import type {
   CompactBranch,
   CompactChecksResult,
@@ -374,6 +379,99 @@ export class GitHubService {
         .map(mapContributor)
         .filter((item): item is CompactContributor => item !== null),
       pagination,
+    };
+  }
+
+  /**
+   * Controlled write: create a branch from a base branch tip.
+   * Does not force-push, delete, or overwrite protected branches.
+   */
+  async createBranch(
+    projectId: string,
+    input: { branchName: string; baseBranch: string; repository?: string },
+  ): Promise<{ repository: string; ref: string; sha: string }> {
+    const client = this.requireClient();
+    const github = this.resolveGithubConfig(projectId);
+    const repoShort = input.repository ?? github.repositories[0];
+    if (!repoShort) {
+      throw new GitHubConfigurationError(
+        `Project "${projectId}" has no configured GitHub repositories.`,
+      );
+    }
+    const { organization, repository } = this.assertRepositoryAllowed(
+      projectId,
+      repoShort.includes("/") ? repoShort.split("/").pop()! : repoShort,
+    );
+
+    const baseSha = await githubGetBranchSha(
+      client,
+      organization,
+      repository,
+      input.baseBranch,
+    );
+    const created = await githubCreateBranch(client, {
+      owner: organization,
+      repo: repository,
+      branchName: input.branchName,
+      baseSha,
+    });
+
+    return {
+      repository: `${organization}/${repository}`,
+      ref: created.ref,
+      sha: created.sha,
+    };
+  }
+
+  /**
+   * Controlled write: open a pull request. Does not merge or close.
+   */
+  async createPullRequest(
+    projectId: string,
+    input: {
+      headBranch: string;
+      baseBranch: string;
+      title: string;
+      body: string;
+      repository?: string;
+    },
+  ): Promise<{
+    repository: string;
+    number: number;
+    htmlUrl: string;
+    title: string;
+  }> {
+    const client = this.requireClient();
+    const github = this.resolveGithubConfig(projectId);
+    const repoShort = input.repository ?? github.repositories[0];
+    if (!repoShort) {
+      throw new GitHubConfigurationError(
+        `Project "${projectId}" has no configured GitHub repositories.`,
+      );
+    }
+    const { organization, repository } = this.assertRepositoryAllowed(
+      projectId,
+      repoShort.includes("/") ? repoShort.split("/").pop()! : repoShort,
+    );
+
+    // Ensure branches exist (boundary + existence)
+    await this.getBranch(projectId, repository, input.headBranch);
+    await this.getBranch(projectId, repository, input.baseBranch);
+
+    const pr = await githubCreatePullRequest(client, {
+      owner: organization,
+      repo: repository,
+      title: input.title,
+      body: input.body,
+      head: input.headBranch,
+      base: input.baseBranch,
+    });
+
+    return {
+      repository: `${organization}/${repository}`,
+      number: pr.number,
+      htmlUrl: pr.html_url,
+      title: pr.title,
     };
   }
 

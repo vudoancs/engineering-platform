@@ -23,7 +23,7 @@ export interface JiraClientOptions {
 }
 
 export interface JiraRequestOptions {
-  method?: "GET" | "POST";
+  method?: "GET" | "POST" | "PUT";
   query?: Record<string, string | number | boolean | undefined>;
   body?: unknown;
   /** Override default timeout for a single request. */
@@ -70,6 +70,18 @@ export class JiraClient {
   ): Promise<T> {
     return this.request<T>(path, {
       method: "POST",
+      ...(body !== undefined ? { body } : {}),
+      ...(query !== undefined ? { query } : {}),
+    });
+  }
+
+  async put<T>(
+    path: string,
+    body?: unknown,
+    query?: Record<string, string | number | boolean | undefined>,
+  ): Promise<T> {
+    return this.request<T>(path, {
+      method: "PUT",
       ...(body !== undefined ? { body } : {}),
       ...(query !== undefined ? { query } : {}),
     });

@@ -145,7 +145,7 @@ describe("Agent layer", () => {
       id: expect.any(String),
       name: expect.any(String),
       role: expect.any(String),
-      governanceProfile: "read-only",
+      governanceProfile: expect.stringMatching(/^(read-only|controlled-write)$/),
     });
   });
 

@@ -98,9 +98,9 @@ export class AgentPolicy {
   }
 
   assertGovernanceProfile(profile: GovernanceProfile, agentId: string): void {
-    if (profile !== "read-only") {
+    if (profile !== "read-only" && profile !== "controlled-write") {
       throw new AgentValidationError(
-        `Unsupported governanceProfile "${profile}" for agent "${agentId}" in v1`,
+        `Unsupported governanceProfile "${profile}" for agent "${agentId}"`,
       );
     }
   }

@@ -2,7 +2,7 @@
  * Agent definition types — contract only, no LLM runtime.
  */
 
-export const GOVERNANCE_PROFILES = ["read-only"] as const;
+export const GOVERNANCE_PROFILES = ["read-only", "controlled-write"] as const;
 
 export type GovernanceProfile = (typeof GOVERNANCE_PROFILES)[number];
 

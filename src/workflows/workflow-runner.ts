@@ -167,7 +167,11 @@ export class WorkflowRunner {
 
     try {
       if (step.enabled === false) {
-        throw new WorkflowError(`Step "${step.id}" is disabled`, {
+        const blocked =
+          step.action !== undefined
+            ? `BLOCKED_BY_DISABLED_ACTION: ${step.action} is disabled by engineering policy`
+            : `Step "${step.id}" is disabled`;
+        throw new WorkflowError(blocked, {
           code: "WORKFLOW_STEP_ERROR",
           retryable: false,
           details: { stepId: step.id, action: step.action },

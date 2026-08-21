@@ -11,6 +11,7 @@ export const DEFAULT_KNOWN_MCP_TOOLS = [
   "jira_get_issue_comments",
   "jira_get_issue_transitions",
   "jira_get_current_user",
+  "jira_update_issue",
   // GitHub
   "github_list_repositories",
   "github_get_repository",
@@ -24,6 +25,8 @@ export const DEFAULT_KNOWN_MCP_TOOLS = [
   "github_get_pull_request_checks",
   "github_get_file",
   "github_list_contributors",
+  "github_create_branch",
+  "github_create_pull_request",
   // Confluence
   "confluence_get_space",
   "confluence_search_pages",
