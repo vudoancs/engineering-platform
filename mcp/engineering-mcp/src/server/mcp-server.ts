@@ -4,12 +4,18 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import {
+  hasConfluenceCredentials,
   hasGitHubCredentials,
   hasJiraCredentials,
   loadMcpEnv,
   type McpEnvConfig,
 } from "../config/env.config.js";
 import { McpError } from "../errors/mcp-errors.js";
+import { ConfluenceError } from "../integrations/confluence/confluence.errors.js";
+import {
+  createConfluenceClientFromEnv,
+  ConfluenceService,
+} from "../integrations/confluence/confluence.service.js";
 import { GitHubError } from "../integrations/github/github.errors.js";
 import {
   createGitHubClientFromEnv,
@@ -24,6 +30,7 @@ import { PermissionService } from "../security/permission.service.js";
 import { HealthService } from "../services/health.service.js";
 import { Logger } from "../services/logger.js";
 import { ProjectContextService } from "../services/project-context.service.js";
+import { createConfluenceTools } from "../tools/confluence/index.js";
 import { createGitHubTools } from "../tools/github/index.js";
 import { createJiraTools } from "../tools/jira/index.js";
 import { createToolContext } from "../tools/tool-context.js";
@@ -40,6 +47,7 @@ export interface EngineeringMcpRuntime {
   resources: ResourceRegistry;
   jira: JiraService;
   github: GitHubService;
+  confluence: ConfluenceService;
   server: McpServer;
 }
 
@@ -51,6 +59,7 @@ export interface McpServerFactoryOptions {
   resourceRegistry?: ResourceRegistry;
   jiraService?: JiraService;
   githubService?: GitHubService;
+  confluenceService?: ConfluenceService;
 }
 
 /**
@@ -111,12 +120,36 @@ export class McpServerFactory {
         maxFileBytes: config.GITHUB_MAX_FILE_BYTES,
       });
 
+    const confluence =
+      options.confluenceService ??
+      new ConfluenceService({
+        projectConfigService: projects.getProjectConfigService(),
+        client: hasConfluenceCredentials(config)
+          ? createConfluenceClientFromEnv({
+              ...(config.CONFLUENCE_BASE_URL !== undefined
+                ? { CONFLUENCE_BASE_URL: config.CONFLUENCE_BASE_URL }
+                : {}),
+              ...(config.CONFLUENCE_EMAIL !== undefined
+                ? { CONFLUENCE_EMAIL: config.CONFLUENCE_EMAIL }
+                : {}),
+              ...(config.CONFLUENCE_API_TOKEN !== undefined
+                ? { CONFLUENCE_API_TOKEN: config.CONFLUENCE_API_TOKEN }
+                : {}),
+              CONFLUENCE_REQUEST_TIMEOUT_MS: config.CONFLUENCE_REQUEST_TIMEOUT_MS,
+            })
+          : null,
+        maxPageSizeBytes: config.CONFLUENCE_MAX_PAGE_SIZE_BYTES,
+      });
+
     const tools = options.toolRegistry ?? new ToolRegistry();
     if (!options.toolRegistry) {
       for (const tool of createJiraTools()) {
         tools.register(tool);
       }
       for (const tool of createGitHubTools()) {
+        tools.register(tool);
+      }
+      for (const tool of createConfluenceTools()) {
         tools.register(tool);
       }
     }
@@ -135,6 +168,7 @@ export class McpServerFactory {
       projects,
       jira,
       github,
+      confluence,
     };
 
     this.applyTools(server, tools, deps);
@@ -148,6 +182,7 @@ export class McpServerFactory {
       resourceCount: resources.size(),
       jiraConfigured: jira.isConfigured(),
       githubConfigured: github.isConfigured(),
+      confluenceConfigured: confluence.isConfigured(),
       projectsDir,
     });
 
@@ -161,6 +196,7 @@ export class McpServerFactory {
       resources,
       jira,
       github,
+      confluence,
       server,
     };
   }
@@ -184,6 +220,7 @@ export class McpServerFactory {
       projects: ProjectContextService;
       jira: JiraService;
       github: GitHubService;
+      confluence: ConfluenceService;
     },
   ): void {
     for (const tool of tools.list()) {
@@ -223,7 +260,9 @@ export class McpServerFactory {
             return result;
           } catch (error) {
             const errorCode =
-              error instanceof GitHubError || error instanceof JiraError
+              error instanceof ConfluenceError ||
+              error instanceof GitHubError ||
+              error instanceof JiraError
                 ? error.code
                 : error instanceof McpError
                   ? error.code
@@ -239,7 +278,9 @@ export class McpServerFactory {
             });
 
             const message =
-              error instanceof GitHubError || error instanceof JiraError
+              error instanceof ConfluenceError ||
+              error instanceof GitHubError ||
+              error instanceof JiraError
                 ? JSON.stringify(error.toJSON())
                 : error instanceof Error
                   ? error.message
@@ -266,6 +307,7 @@ export class McpServerFactory {
       projects: ProjectContextService;
       jira: JiraService;
       github: GitHubService;
+      confluence: ConfluenceService;
     },
   ): void {
     for (const resource of resources.list()) {

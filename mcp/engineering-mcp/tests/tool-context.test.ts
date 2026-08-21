@@ -24,6 +24,7 @@ describe("ToolContext and ProjectContext", () => {
       projectId: "kygo",
       jira: null,
       github: null,
+      confluence: null,
     });
 
     expect(context.requestId.length).toBeGreaterThan(0);

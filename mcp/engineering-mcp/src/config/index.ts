@@ -3,5 +3,6 @@ export {
   McpEnvSchema,
   hasJiraCredentials,
   hasGitHubCredentials,
+  hasConfluenceCredentials,
   type McpEnvConfig,
 } from "./env.config.js";

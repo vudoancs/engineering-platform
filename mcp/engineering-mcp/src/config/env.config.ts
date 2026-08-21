@@ -47,17 +47,40 @@ export const McpEnvSchema = z
     ),
     GITHUB_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
     GITHUB_MAX_FILE_BYTES: z.coerce.number().int().positive().default(100 * 1024),
+    CONFLUENCE_BASE_URL: z.preprocess(emptyToUndefined, z.string().url().optional()),
+    CONFLUENCE_EMAIL: z.preprocess(emptyToUndefined, z.string().email().optional()),
+    CONFLUENCE_API_TOKEN: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+    CONFLUENCE_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
+    CONFLUENCE_MAX_PAGE_SIZE_BYTES: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(200 * 1024),
   })
   .superRefine((value, ctx) => {
-    const present = [value.JIRA_BASE_URL, value.JIRA_EMAIL, value.JIRA_API_TOKEN].filter(
+    const jiraPresent = [value.JIRA_BASE_URL, value.JIRA_EMAIL, value.JIRA_API_TOKEN].filter(
       Boolean,
     ).length;
-    if (present > 0 && present < 3) {
+    if (jiraPresent > 0 && jiraPresent < 3) {
       ctx.addIssue({
         code: "custom",
         message:
           "JIRA_BASE_URL, JIRA_EMAIL, and JIRA_API_TOKEN must all be set together (or all omitted)",
         path: ["JIRA_BASE_URL"],
+      });
+    }
+
+    const confluencePresent = [
+      value.CONFLUENCE_BASE_URL,
+      value.CONFLUENCE_EMAIL,
+      value.CONFLUENCE_API_TOKEN,
+    ].filter(Boolean).length;
+    if (confluencePresent > 0 && confluencePresent < 3) {
+      ctx.addIssue({
+        code: "custom",
+        message:
+          "CONFLUENCE_BASE_URL, CONFLUENCE_EMAIL, and CONFLUENCE_API_TOKEN must all be set together (or all omitted)",
+        path: ["CONFLUENCE_BASE_URL"],
       });
     }
   });
@@ -83,6 +106,11 @@ export function loadMcpEnv(env: NodeJS.ProcessEnv = process.env): McpEnvConfig {
     GITHUB_API_URL: env.GITHUB_API_URL,
     GITHUB_REQUEST_TIMEOUT_MS: env.GITHUB_REQUEST_TIMEOUT_MS,
     GITHUB_MAX_FILE_BYTES: env.GITHUB_MAX_FILE_BYTES,
+    CONFLUENCE_BASE_URL: env.CONFLUENCE_BASE_URL,
+    CONFLUENCE_EMAIL: env.CONFLUENCE_EMAIL,
+    CONFLUENCE_API_TOKEN: env.CONFLUENCE_API_TOKEN,
+    CONFLUENCE_REQUEST_TIMEOUT_MS: env.CONFLUENCE_REQUEST_TIMEOUT_MS,
+    CONFLUENCE_MAX_PAGE_SIZE_BYTES: env.CONFLUENCE_MAX_PAGE_SIZE_BYTES,
   });
 
   if (!result.success) {
@@ -104,4 +132,10 @@ export function hasJiraCredentials(config: McpEnvConfig): boolean {
 
 export function hasGitHubCredentials(config: McpEnvConfig): boolean {
   return Boolean(config.GITHUB_TOKEN);
+}
+
+export function hasConfluenceCredentials(config: McpEnvConfig): boolean {
+  return Boolean(
+    config.CONFLUENCE_BASE_URL && config.CONFLUENCE_EMAIL && config.CONFLUENCE_API_TOKEN,
+  );
 }

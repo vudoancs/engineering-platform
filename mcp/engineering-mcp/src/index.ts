@@ -3,6 +3,7 @@ export {
   McpEnvSchema,
   hasJiraCredentials,
   hasGitHubCredentials,
+  hasConfluenceCredentials,
   type McpEnvConfig,
 } from "./config/index.js";
 export {
@@ -33,9 +34,11 @@ export {
   type PermissionDecision,
 } from "./security/index.js";
 export {
+  createConfluenceTools,
   createGitHubTools,
   createJiraTools,
   createToolContext,
+  CONFLUENCE_TOOL_NAMES,
   GITHUB_TOOL_NAMES,
   JIRA_TOOL_NAMES,
   type EngineeringTool,
@@ -72,3 +75,17 @@ export {
   GitHubUnavailableError,
   GitHubValidationError,
 } from "./integrations/github/index.js";
+export {
+  ConfluenceClient,
+  ConfluenceService,
+  createConfluenceClientFromEnv,
+  ConfluenceAuthenticationError,
+  ConfluenceConfigurationError,
+  ConfluenceError,
+  ConfluenceNotFoundError,
+  ConfluenceProjectBoundaryError,
+  ConfluenceRateLimitError,
+  ConfluenceTimeoutError,
+  ConfluenceUnavailableError,
+  ConfluenceValidationError,
+} from "./integrations/confluence/index.js";

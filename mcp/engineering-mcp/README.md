@@ -10,7 +10,7 @@ This package is an AI access layer. It is **not** a Jira/GitHub/Confluence datab
 
 - Jira (READ-ONLY)
 - GitHub (READ-ONLY)
-- Confluence (planned)
+- Confluence (READ-ONLY)
 - Engineering Intelligence (planned)
 - Governance (planned)
 
@@ -26,7 +26,7 @@ ProjectConfigService (platform)
 Integrations
     ├── Jira (READ-ONLY)
     ├── GitHub (READ-ONLY)
-    └── Confluence (planned)
+    └── Confluence (READ-ONLY)
 ```
 
 ## Project awareness
@@ -38,6 +38,7 @@ The server does **not** hard-code project names. It resolves configuration throu
 ```ts
 projectConfigService.getJiraConfig(projectId)
 projectConfigService.getGithubConfig(projectId)
+projectConfigService.getConfluenceConfig(projectId)
 ```
 
 Adding a project only requires `projects/<project-id>.yaml` in the platform repo.
@@ -179,6 +180,72 @@ Write tools (create/update/merge PR, push commits, etc.) are intentionally not i
 - `projectId: kygo` + `repository: clubsync` is rejected when not allowlisted
 - Organization and repository routing come from `ProjectConfigService`
 
+## Confluence Integration
+
+Confluence is the source of truth for engineering documentation.
+
+- `projectId` determines the allowed Confluence space via project YAML
+- Project isolation prevents cross-project document access
+- Confluence integration is **READ-ONLY** in v1
+- Credentials come from environment variables, never from project YAML
+
+### Environment
+
+```env
+CONFLUENCE_BASE_URL=
+CONFLUENCE_EMAIL=
+CONFLUENCE_API_TOKEN=
+CONFLUENCE_REQUEST_TIMEOUT_MS=10000
+CONFLUENCE_MAX_PAGE_SIZE_BYTES=204800
+```
+
+The MCP server starts even when Confluence credentials are omitted. Confluence tools then return a clear configuration error.
+
+### Tools
+
+| Tool | Purpose |
+|------|---------|
+| `confluence_get_space` | Get the configured Confluence space for a project |
+| `confluence_search_pages` | Search pages within the project's space only |
+| `confluence_get_page` | Get page content (readable text; size-limited) |
+| `confluence_get_page_children` | List direct child pages |
+| `confluence_get_page_ancestors` | List ancestor pages (hierarchy) |
+| `confluence_get_page_labels` | List page labels |
+
+Write tools (create/update/delete page, comments, labels, move) are intentionally not implemented.
+
+### Example calls
+
+`confluence_search_pages`
+
+```json
+{
+  "projectId": "kygo",
+  "query": "authentication",
+  "limit": 20
+}
+```
+
+Search is automatically constrained to the configured space (for example `KYGO` when `projectId` is `kygo`). Callers must not supply an arbitrary `spaceKey`.
+
+`confluence_get_page`
+
+```json
+{
+  "projectId": "kygo",
+  "pageId": "123456"
+}
+```
+
+Pages outside the configured space are rejected.
+
+### Space isolation
+
+- Space keys are resolved only through `ProjectConfigService`
+- `projectId: kygo` may only access its configured space
+- Cross-space access raises `CONFLUENCE_PROJECT_BOUNDARY_VIOLATION`
+- Search CQL is built server-side and always includes the project space filter
+
 ## Read-only mode
 
 Default:
@@ -194,14 +261,14 @@ MCP_READ_ONLY=true
 | DELETE  | denied                                    |
 | EXECUTE | denied                                    |
 
-Jira and GitHub tools in this phase only require `READ`.
+Jira, GitHub, and Confluence tools in this phase only require `READ`.
 
 ## Security model
 
 - Credentials never belong in project YAML files
 - Do not log tokens, passwords, or authorization headers
 - Write/delete/execute are denied by default
-- Jira and GitHub tools enforce project/repository boundary checks
+- Jira, GitHub, and Confluence tools enforce project boundary checks
 
 ## How to run locally
 
@@ -243,7 +310,10 @@ Labeled as examples — verify against your client's current docs before using i
         "JIRA_EMAIL": "you@example.com",
         "JIRA_API_TOKEN": "your-token",
         "GITHUB_TOKEN": "your-github-token",
-        "GITHUB_API_URL": "https://api.github.com"
+        "GITHUB_API_URL": "https://api.github.com",
+        "CONFLUENCE_BASE_URL": "https://your-domain.atlassian.net",
+        "CONFLUENCE_EMAIL": "you@example.com",
+        "CONFLUENCE_API_TOKEN": "your-token"
       }
     }
   }
@@ -266,7 +336,10 @@ Labeled as examples — verify against your client's current docs before using i
         "JIRA_EMAIL": "you@example.com",
         "JIRA_API_TOKEN": "your-token",
         "GITHUB_TOKEN": "your-github-token",
-        "GITHUB_API_URL": "https://api.github.com"
+        "GITHUB_API_URL": "https://api.github.com",
+        "CONFLUENCE_BASE_URL": "https://your-domain.atlassian.net",
+        "CONFLUENCE_EMAIL": "you@example.com",
+        "CONFLUENCE_API_TOKEN": "your-token"
       }
     }
   }
