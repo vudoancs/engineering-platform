@@ -14,6 +14,8 @@ async function main(): Promise<void> {
       toolNames: runtime.tools.list().map((tool) => tool.name),
       resourceCount: runtime.resources.size(),
       jiraConfigured: runtime.jira.isConfigured(),
+      githubConfigured: runtime.github.isConfigured(),
+      confluenceConfigured: runtime.confluence.isConfigured(),
       name: runtime.config.MCP_SERVER_NAME,
       version: runtime.config.MCP_SERVER_VERSION,
     });

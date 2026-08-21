@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { McpEnvConfig } from "../config/env.config.js";
+import type { ConfluenceService } from "../integrations/confluence/confluence.service.js";
+import type { GitHubService } from "../integrations/github/github.service.js";
 import type { JiraService } from "../integrations/jira/jira.service.js";
 import type { PermissionService } from "../security/permission.service.js";
 import type { Logger } from "../services/logger.js";
@@ -17,6 +19,8 @@ export interface ToolContext {
   projects: ProjectContextService;
   config: McpEnvConfig;
   jira: JiraService | null;
+  github: GitHubService | null;
+  confluence: ConfluenceService | null;
 }
 
 export interface CreateToolContextInput {
@@ -25,6 +29,8 @@ export interface CreateToolContextInput {
   projects: ProjectContextService;
   config: McpEnvConfig;
   jira?: JiraService | null;
+  github?: GitHubService | null;
+  confluence?: ConfluenceService | null;
   projectId?: string;
   requestId?: string;
 }
@@ -38,5 +44,7 @@ export function createToolContext(input: CreateToolContextInput): ToolContext {
     projects: input.projects,
     config: input.config,
     jira: input.jira ?? null,
+    github: input.github ?? null,
+    confluence: input.confluence ?? null,
   };
 }

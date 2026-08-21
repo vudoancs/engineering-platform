@@ -1,4 +1,11 @@
-export { loadMcpEnv, McpEnvSchema, hasJiraCredentials, type McpEnvConfig } from "./config/index.js";
+export {
+  loadMcpEnv,
+  McpEnvSchema,
+  hasJiraCredentials,
+  hasGitHubCredentials,
+  hasConfluenceCredentials,
+  type McpEnvConfig,
+} from "./config/index.js";
 export {
   McpConfigurationError,
   McpError,
@@ -27,8 +34,12 @@ export {
   type PermissionDecision,
 } from "./security/index.js";
 export {
+  createConfluenceTools,
+  createGitHubTools,
   createJiraTools,
   createToolContext,
+  CONFLUENCE_TOOL_NAMES,
+  GITHUB_TOOL_NAMES,
   JIRA_TOOL_NAMES,
   type EngineeringTool,
   type ToolContext,
@@ -47,3 +58,34 @@ export {
   JiraUnavailableError,
   JiraValidationError,
 } from "./integrations/jira/index.js";
+export {
+  GitHubClient,
+  GitHubService,
+  createGitHubClientFromEnv,
+  GitHubAuthenticationError,
+  GitHubBinaryContentError,
+  GitHubConfigurationError,
+  GitHubError,
+  GitHubFileTooLargeError,
+  GitHubNotFoundError,
+  GitHubProjectBoundaryError,
+  GitHubRateLimitError,
+  GitHubRepositoryBoundaryError,
+  GitHubTimeoutError,
+  GitHubUnavailableError,
+  GitHubValidationError,
+} from "./integrations/github/index.js";
+export {
+  ConfluenceClient,
+  ConfluenceService,
+  createConfluenceClientFromEnv,
+  ConfluenceAuthenticationError,
+  ConfluenceConfigurationError,
+  ConfluenceError,
+  ConfluenceNotFoundError,
+  ConfluenceProjectBoundaryError,
+  ConfluenceRateLimitError,
+  ConfluenceTimeoutError,
+  ConfluenceUnavailableError,
+  ConfluenceValidationError,
+} from "./integrations/confluence/index.js";

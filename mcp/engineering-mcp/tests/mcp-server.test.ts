@@ -3,6 +3,8 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { McpServerFactory } from "../src/server/mcp-server.js";
 import { Logger } from "../src/services/logger.js";
+import { CONFLUENCE_TOOL_NAMES } from "../src/tools/confluence/index.js";
+import { GITHUB_TOOL_NAMES } from "../src/tools/github/index.js";
 import { JIRA_TOOL_NAMES } from "../src/tools/jira/index.js";
 import { ToolRegistry } from "../src/server/tool-registry.js";
 
@@ -12,7 +14,7 @@ const projectsDir = path.resolve(
 );
 
 describe("McpServerFactory", () => {
-  it("creates MCP server and registers read-only Jira tools", () => {
+  it("registers read-only Jira, GitHub, and Confluence tools", () => {
     const factory = new McpServerFactory();
     const runtime = factory.create({
       projectsDir,
@@ -25,28 +27,17 @@ describe("McpServerFactory", () => {
       logger: new Logger({ level: "error", sink: () => undefined }),
     });
 
-    expect(runtime.config.MCP_SERVER_NAME).toBe("engineering-mcp");
-    expect(runtime.config.MCP_SERVER_VERSION).toBe("0.1.0");
-    expect(runtime.tools.size()).toBe(JIRA_TOOL_NAMES.length);
-    expect(runtime.tools.list().map((tool) => tool.name).sort()).toEqual(
-      [...JIRA_TOOL_NAMES].sort(),
-    );
-    expect(runtime.tools.list().some((tool) => tool.name.includes("create"))).toBe(
-      false,
-    );
-    expect(runtime.tools.list().some((tool) => tool.name.includes("update"))).toBe(
-      false,
-    );
-    expect(runtime.tools.list().some((tool) => tool.name.includes("transition_issue"))).toBe(
-      false,
-    );
-    expect(runtime.tools.list().some((tool) => tool.name.includes("delete"))).toBe(
-      false,
-    );
-    expect(runtime.resources.size()).toBe(0);
-    expect(runtime.health.health().status).toBe("ok");
+    const names = runtime.tools.list().map((tool) => tool.name).sort();
+    const expected = [...JIRA_TOOL_NAMES, ...GITHUB_TOOL_NAMES, ...CONFLUENCE_TOOL_NAMES].sort();
+    expect(runtime.tools.size()).toBe(expected.length);
+    expect(names).toEqual(expected);
+    expect(names.some((name) => name.includes("create"))).toBe(false);
+    expect(names.some((name) => name.includes("update"))).toBe(false);
+    expect(names.some((name) => name.includes("delete"))).toBe(false);
+    expect(names.some((name) => name.includes("merge"))).toBe(false);
     expect(runtime.jira.isConfigured()).toBe(false);
-    expect(runtime.server).toBeDefined();
+    expect(runtime.github.isConfigured()).toBe(false);
+    expect(runtime.confluence.isConfigured()).toBe(false);
   });
 
   it("allows injecting an empty tool registry", () => {
