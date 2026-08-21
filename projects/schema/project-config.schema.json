@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://engineering-platform.local/schemas/project-config.schema.json",
+  "title": "ProjectConfig",
+  "description": "Routing metadata that maps a platform project to Jira, GitHub, and Confluence. Credentials must never be stored in project configuration files.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique lowercase kebab-case project identifier.",
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+      "examples": ["kygo", "clubsync", "project-a"]
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable project name."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional short description of the project."
+    },
+    "jira": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["projectKey"],
+      "properties": {
+        "projectKey": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Jira project key used for issue routing."
+        }
+      }
+    },
+    "github": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["organization", "repositories"],
+      "properties": {
+        "organization": {
+          "type": "string",
+          "minLength": 1,
+          "description": "GitHub organization that owns the project repositories."
+        },
+        "repositories": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "GitHub repository names belonging to this project."
+        }
+      }
+    },
+    "confluence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["spaceKey"],
+      "properties": {
+        "spaceKey": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Confluence space key for project documentation."
+        }
+      }
+    },
+    "settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether the project is enabled for platform use."
+        }
+      }
+    }
+  },
+  "anyOf": [
+    { "required": ["jira"] },
+    { "required": ["github"] },
+    { "required": ["confluence"] }
+  ]
+}
