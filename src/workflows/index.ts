@@ -78,3 +78,4 @@ export {
   type WorkflowServiceOptions,
   type ProjectExistenceChecker,
 } from "./workflow.service.js";
+export { ExecutionBackedActionExecutor } from "./execution-action-executor.js";

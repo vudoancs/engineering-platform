@@ -9,11 +9,17 @@ import {
   DEFAULT_KNOWN_MCP_TOOLS,
 } from "engineering-platform/agents";
 import {
+  ExecutionError,
+  ExecutionService,
+  type ExecutionService as ExecutionServiceType,
+} from "engineering-platform/execution";
+import {
   GovernanceError,
   GovernanceService,
   type GovernanceService as GovernanceServiceType,
 } from "engineering-platform/governance";
 import {
+  ExecutionBackedActionExecutor,
   WorkflowService,
   type WorkflowService as WorkflowServiceType,
 } from "engineering-platform/workflows";
@@ -50,7 +56,9 @@ import { createConfluenceTools } from "../tools/confluence/index.js";
 import { createEngineeringTools } from "../tools/engineering/index.js";
 import { createGovernanceTools } from "../tools/governance/index.js";
 import { createGitHubTools } from "../tools/github/index.js";
+import { createGitHubWriteTools } from "../tools/github/github.write.tools.js";
 import { createJiraTools } from "../tools/jira/index.js";
+import { createJiraWriteTools } from "../tools/jira/jira.write.tools.js";
 import { createToolContext } from "../tools/tool-context.js";
 import { ResourceRegistry } from "./resource-registry.js";
 import { ToolRegistry } from "./tool-registry.js";
@@ -70,6 +78,7 @@ export interface EngineeringMcpRuntime {
   governance: GovernanceServiceType;
   agents: AgentServiceType;
   workflows: WorkflowServiceType;
+  execution: ExecutionServiceType;
   server: McpServer;
 }
 
@@ -89,6 +98,7 @@ export interface McpServerFactoryOptions {
   governanceService?: GovernanceServiceType;
   agentService?: AgentServiceType;
   workflowService?: WorkflowServiceType;
+  executionService?: ExecutionServiceType;
 }
 
 /**
@@ -156,14 +166,9 @@ export class McpServerFactory {
         },
       });
 
-    const workflows =
-      options.workflowService ??
-      WorkflowService.loadFromDirectory({
-        workflowsDir,
-        agentService: agents,
-        governance,
-        isProjectKnown,
-      });
+    // Placeholder services created below after jira/github; execution needs them.
+    let execution!: ExecutionServiceType;
+    let workflows!: WorkflowServiceType;
 
     const jira =
       options.jiraService ??
@@ -238,12 +243,78 @@ export class McpServerFactory {
         },
       });
 
+    execution =
+      options.executionService ??
+      new ExecutionService({
+        governance,
+        projectConfig: projects.getProjectConfigService(),
+        isProjectKnown,
+        githubWrite: {
+          createBranch: async (input) => {
+            const created = await github.createBranch(input.projectId, {
+              branchName: input.branchName,
+              baseBranch: input.baseBranch,
+              repository: input.repository.includes("/")
+                ? input.repository.split("/").pop()!
+                : input.repository,
+            });
+            return { ref: created.ref, sha: created.sha };
+          },
+          createPullRequest: async (input) => {
+            const pr = await github.createPullRequest(input.projectId, {
+              headBranch: input.headBranch,
+              baseBranch: input.baseBranch,
+              title: input.title,
+              body: input.body,
+              repository: input.repository.includes("/")
+                ? input.repository.split("/").pop()!
+                : input.repository,
+            });
+            return {
+              number: pr.number,
+              htmlUrl: pr.htmlUrl,
+              title: pr.title,
+            };
+          },
+        },
+        jiraWrite: {
+          updateIssue: async (input) =>
+            jira.updateIssueControlled(input.projectId, input.issueKey, {
+              ...(typeof input.fields.status === "string"
+                ? { status: input.fields.status }
+                : {}),
+              ...(typeof input.fields.comment === "string"
+                ? { comment: input.fields.comment }
+                : {}),
+              ...(Array.isArray(input.fields.labels)
+                ? { labels: input.fields.labels as string[] }
+                : {}),
+            }),
+        },
+      });
+
+    workflows =
+      options.workflowService ??
+      WorkflowService.loadFromDirectory({
+        workflowsDir,
+        agentService: agents,
+        governance,
+        isProjectKnown,
+        actionExecutor: new ExecutionBackedActionExecutor(execution),
+      });
+
     const tools = options.toolRegistry ?? new ToolRegistry();
     if (!options.toolRegistry) {
       for (const tool of createJiraTools()) {
         tools.register(tool);
       }
+      for (const tool of createJiraWriteTools()) {
+        tools.register(tool);
+      }
       for (const tool of createGitHubTools()) {
+        tools.register(tool);
+      }
+      for (const tool of createGitHubWriteTools()) {
         tools.register(tool);
       }
       for (const tool of createConfluenceTools()) {
@@ -276,6 +347,7 @@ export class McpServerFactory {
       governance,
       agents,
       workflows,
+      execution,
     };
 
     this.applyTools(server, tools, deps);
@@ -314,6 +386,7 @@ export class McpServerFactory {
       governance,
       agents,
       workflows,
+      execution,
       server,
     };
   }
@@ -342,6 +415,7 @@ export class McpServerFactory {
       governance: GovernanceServiceType;
       agents: AgentServiceType;
       workflows: WorkflowServiceType;
+      execution: ExecutionServiceType;
     },
   ): void {
     for (const tool of tools.list()) {
@@ -381,6 +455,7 @@ export class McpServerFactory {
             return result;
           } catch (error) {
             const errorCode =
+              error instanceof ExecutionError ||
               error instanceof GovernanceError ||
               error instanceof EngineeringError ||
               error instanceof ConfluenceError ||
@@ -401,6 +476,7 @@ export class McpServerFactory {
             });
 
             const message =
+              error instanceof ExecutionError ||
               error instanceof GovernanceError ||
               error instanceof EngineeringError ||
               error instanceof ConfluenceError ||
@@ -437,6 +513,7 @@ export class McpServerFactory {
       governance: GovernanceServiceType;
       agents: AgentServiceType;
       workflows: WorkflowServiceType;
+      execution: ExecutionServiceType;
     },
   ): void {
     for (const resource of resources.list()) {

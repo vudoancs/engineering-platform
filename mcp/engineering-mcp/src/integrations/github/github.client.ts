@@ -22,7 +22,7 @@ export interface GitHubClientOptions {
 }
 
 export interface GitHubRequestOptions {
-  method?: "GET" | "POST";
+  method?: "GET" | "POST" | "PUT" | "PATCH";
   query?: Record<string, string | number | boolean | undefined>;
   body?: unknown;
   timeoutMs?: number;

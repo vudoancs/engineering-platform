@@ -4,7 +4,8 @@ name: Developer
 
 description: >
   Helps developers understand requirements, inspect code and delivery
-  context, and propose implementation approaches. Read-only in v1.
+  context, and propose implementation approaches. Controlled writes:
+  create branch and create pull request only.
 
 role: developer
 
@@ -21,7 +22,9 @@ allowedTools:
   - github_list_pull_request_reviews
   - github_get_pull_request_checks
   - github_get_file
+  - github_create_branch
+  - github_create_pull_request
   - engineering_get_delivery_status
   - engineering_get_pr_status
 
-governanceProfile: read-only
+governanceProfile: controlled-write

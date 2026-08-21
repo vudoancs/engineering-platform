@@ -11,6 +11,7 @@ import {
   JiraValidationError,
 } from "./jira.errors.js";
 import { constrainJqlToProject } from "./jira.jql.js";
+import { jiraControlledUpdateIssue } from "./jira.write.js";
 import {
   getIssueProjectKey,
   mapComments,
@@ -208,6 +209,20 @@ export class JiraService {
     const client = this.requireClient();
     const user = await client.get<JiraUserRef>("/rest/api/3/myself");
     return mapCurrentUser(user);
+  }
+
+  /**
+   * Controlled write: status (transition), comment, labels only.
+   */
+  async updateIssueControlled(
+    projectId: string,
+    issueKey: string,
+    fields: { status?: string; comment?: string; labels?: string[] },
+  ): Promise<{ issueKey: string; updated: string[] }> {
+    const client = this.requireClient();
+    const projectKey = this.resolveJiraProjectKey(projectId);
+    await this.getIssueAndAssertBoundary(client, projectId, projectKey, issueKey);
+    return jiraControlledUpdateIssue(client, { issueKey, fields });
   }
 
   private async getIssueAndAssertBoundary(

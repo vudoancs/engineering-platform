@@ -9,17 +9,22 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- Workflow orchestration layer (`src/workflows`, `engineering-platform/workflows`)
-  - Definitions: `workflows/jira-to-pr`, `workflows/pr-review`
-  - Deterministic one-step runner (no workers / loops / Temporal / Redis)
-  - Approval store, audit events, retry, idempotency, condition gates
-  - Write actions as `NOT_IMPLEMENTED` placeholders (`enabled: false` where applicable)
-- MCP READ-ONLY tools: `engineering_list_workflows`, `engineering_get_workflow`, `engineering_get_workflow_instance`
-- Env: `WORKFLOWS_DIR`
+- Controlled Write MCP + Execution Guard (`src/execution`, `engineering-platform/execution`)
+  - Enabled: `github_create_branch`, `github_create_pull_request`, `jira_update_issue`
+  - Disabled (not registered): merge, confluence update, deploy, database migration
+  - Fail-closed guard: project boundary, agent allowlist, governance, approval lookup, idempotency, dry-run
+- GitHub/Jira write helpers (`github.write.ts`, `jira.write.ts`); Confluence write stub (not exposed)
+- Developer agent `controlled-write` profile with create-branch / create-PR tools
+- Slack message helpers for PR created / Jira approval / disabled merge (no Slack execution)
 
 ### Changed
 
-- README / MCP docs: document Workflows architecture and constraints
+- `jira-to-pr` workflow: create-branch + create-PR enabled; merge remains disabled
+- README: Controlled Write Operations section
+
+### Previously in this section (shipped)
+
+- Workflow orchestration layer and READ-ONLY workflow MCP tools (`WORKFLOWS_DIR`)
 
 ## [0.1.0] - 2026-08-21
 

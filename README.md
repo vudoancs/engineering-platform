@@ -46,6 +46,31 @@ Security is layered: agent tool allowlist + project boundary (`ProjectConfigServ
 
 Agents are invoked explicitly. There is no autonomous loop, swarm framework, or LLM runtime in this package.
 
+## Controlled Write Operations
+
+```
+Agent
+ ↓
+Workflow
+ ↓
+Governance
+ ↓
+Execution Guard
+ ↓
+MCP
+ ↓
+External System
+```
+
+| Class | Behavior |
+| --- | --- |
+| READ | Allowed via policy (existing tools) |
+| LOW-RISK WRITE | Policy-controlled: `github_create_branch`, `github_create_pull_request` |
+| MEDIUM/HIGH-RISK WRITE | Approval required: `jira_update_issue` |
+| DISABLED | Not exposed as MCP tools: merge, confluence update, deploy, DB migration |
+
+Repository / Jira project / Confluence space are resolved from `projects/<id>.yaml`. Callers cannot supply credentials or override project boundaries.
+
 ## Workflows
 
 A workflow is a **deterministic sequence of steps** (state machine), not a distributed orchestrator.

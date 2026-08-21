@@ -4,7 +4,7 @@ name: Jira to Pull Request
 
 description: >
   Turn an approved Jira task into a reviewed Pull Request.
-  Write steps are declared but disabled until write MCP tools exist.
+  Merge remains disabled by engineering policy.
 
 version: 1
 
@@ -42,17 +42,25 @@ steps:
       reason: Approve implementation plan before coding
       riskLevel: MEDIUM
 
+  - id: create-branch
+    type: ACTION
+    action: github.create_branch
+    enabled: true
+    dependsOn:
+      - approve-plan
+    timeoutMs: 300000
+
   - id: implement
     type: AGENT
     agent: developer
     dependsOn:
-      - approve-plan
+      - create-branch
     timeoutMs: 300000
 
   - id: create-pr
     type: ACTION
     action: github.create_pull_request
-    enabled: false
+    enabled: true
     dependsOn:
       - implement
     timeoutMs: 300000
@@ -71,7 +79,7 @@ steps:
     approval:
       required: true
       minimumApprovers: 1
-      reason: Approve merge after review
+      reason: Approve merge after review (merge execution remains disabled)
       riskLevel: HIGH
 
   - id: merge
@@ -85,7 +93,7 @@ steps:
   - id: update-jira
     type: ACTION
     action: jira.update_issue
-    enabled: false
+    enabled: true
     dependsOn:
       - merge
     timeoutMs: 300000
