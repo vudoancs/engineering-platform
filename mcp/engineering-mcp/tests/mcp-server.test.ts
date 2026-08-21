@@ -10,6 +10,7 @@ import { GITHUB_TOOL_NAMES } from "../src/tools/github/index.js";
 import { GITHUB_WRITE_TOOL_NAMES } from "../src/tools/github/github.write.tools.js";
 import { JIRA_TOOL_NAMES } from "../src/tools/jira/index.js";
 import { JIRA_WRITE_TOOL_NAMES } from "../src/tools/jira/jira.write.tools.js";
+import { COST_TOOL_NAMES } from "../src/tools/cost/cost.tools.js";
 import { ToolRegistry } from "../src/server/tool-registry.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -40,6 +41,7 @@ describe("McpServerFactory", () => {
       ...CONFLUENCE_TOOL_NAMES,
       ...ENGINEERING_TOOL_NAMES,
       ...GOVERNANCE_TOOL_NAMES,
+      ...COST_TOOL_NAMES,
     ].sort();
     expect(runtime.tools.size()).toBe(expected.length);
     expect(names).toEqual(expected);
@@ -53,6 +55,7 @@ describe("McpServerFactory", () => {
     expect(runtime.governance).toBeDefined();
     expect(runtime.governance.isFailClosed()).toBe(true);
     expect(runtime.execution).toBeDefined();
+    expect(runtime.cost).toBeDefined();
   });
 
   it("allows injecting an empty tool registry", () => {

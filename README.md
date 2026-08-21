@@ -71,6 +71,38 @@ External System
 
 Repository / Jira project / Confluence space are resolved from `projects/<id>.yaml`. Callers cannot supply credentials or override project boundaries.
 
+## AI Cost Governance
+
+Every AI request is associated with:
+
+- project
+- member
+- agent
+- provider
+- model
+
+Budget checks happen **before** execution. Actual usage is recorded **after** execution.
+
+Budget hierarchy (any applicable limit may block):
+
+```
+Global
+ ↓
+Project
+ ↓
+Member
+ ↓
+Agent
+```
+
+```
+Agent → Cost Governance → Budget Check → Governance → Execution → Provider → Usage Event
+```
+
+Config: `policies/cost-limits.yaml`, `policies/provider-pricing.yaml` (placeholder prices — not claimed accurate).
+
+MCP READ-ONLY tools: `engineering_get_ai_*`. Slack helpers: `/engineering cost`, `/engineering kygo cost`, `/engineering cost month`.
+
 ## Workflows
 
 A workflow is a **deterministic sequence of steps** (state machine), not a distributed orchestrator.

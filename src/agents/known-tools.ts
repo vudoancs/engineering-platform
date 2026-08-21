@@ -49,6 +49,14 @@ export const DEFAULT_KNOWN_MCP_TOOLS = [
   "engineering_get_workflow_instance",
   // Governance
   "engineering_check_permission",
+  // AI Cost Governance
+  "engineering_get_ai_usage",
+  "engineering_get_ai_cost",
+  "engineering_get_ai_budget",
+  "engineering_get_ai_cost_by_project",
+  "engineering_get_ai_cost_by_agent",
+  "engineering_get_ai_cost_by_member",
+  "engineering_get_ai_cost_by_provider",
 ] as const;
 
 export type KnownMcpToolName = (typeof DEFAULT_KNOWN_MCP_TOOLS)[number];

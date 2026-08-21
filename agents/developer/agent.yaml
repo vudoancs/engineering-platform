@@ -26,5 +26,8 @@ allowedTools:
   - github_create_pull_request
   - engineering_get_delivery_status
   - engineering_get_pr_status
+  - engineering_get_ai_usage
+  - engineering_get_ai_cost
+  - engineering_get_ai_budget
 
 governanceProfile: controlled-write
