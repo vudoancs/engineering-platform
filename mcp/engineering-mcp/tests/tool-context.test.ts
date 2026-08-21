@@ -23,6 +23,7 @@ describe("ToolContext and ProjectContext", () => {
       projects: ProjectContextService.createDefault(projectsDir),
       projectId: "kygo",
       jira: null,
+      github: null,
     });
 
     expect(context.requestId.length).toBeGreaterThan(0);

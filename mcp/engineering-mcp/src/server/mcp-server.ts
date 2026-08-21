@@ -4,11 +4,17 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import {
+  hasGitHubCredentials,
   hasJiraCredentials,
   loadMcpEnv,
   type McpEnvConfig,
 } from "../config/env.config.js";
 import { McpError } from "../errors/mcp-errors.js";
+import { GitHubError } from "../integrations/github/github.errors.js";
+import {
+  createGitHubClientFromEnv,
+  GitHubService,
+} from "../integrations/github/github.service.js";
 import { JiraError } from "../integrations/jira/jira.errors.js";
 import {
   createJiraClientFromEnv,
@@ -18,6 +24,7 @@ import { PermissionService } from "../security/permission.service.js";
 import { HealthService } from "../services/health.service.js";
 import { Logger } from "../services/logger.js";
 import { ProjectContextService } from "../services/project-context.service.js";
+import { createGitHubTools } from "../tools/github/index.js";
 import { createJiraTools } from "../tools/jira/index.js";
 import { createToolContext } from "../tools/tool-context.js";
 import { ResourceRegistry } from "./resource-registry.js";
@@ -32,6 +39,7 @@ export interface EngineeringMcpRuntime {
   tools: ToolRegistry;
   resources: ResourceRegistry;
   jira: JiraService;
+  github: GitHubService;
   server: McpServer;
 }
 
@@ -42,6 +50,7 @@ export interface McpServerFactoryOptions {
   toolRegistry?: ToolRegistry;
   resourceRegistry?: ResourceRegistry;
   jiraService?: JiraService;
+  githubService?: GitHubService;
 }
 
 /**
@@ -84,9 +93,30 @@ export class McpServerFactory {
           : null,
       });
 
+    const github =
+      options.githubService ??
+      new GitHubService({
+        projectConfigService: projects.getProjectConfigService(),
+        client: hasGitHubCredentials(config)
+          ? createGitHubClientFromEnv({
+              ...(config.GITHUB_TOKEN !== undefined
+                ? { GITHUB_TOKEN: config.GITHUB_TOKEN }
+                : {}),
+              ...(config.GITHUB_API_URL !== undefined
+                ? { GITHUB_API_URL: config.GITHUB_API_URL }
+                : {}),
+              GITHUB_REQUEST_TIMEOUT_MS: config.GITHUB_REQUEST_TIMEOUT_MS,
+            })
+          : null,
+        maxFileBytes: config.GITHUB_MAX_FILE_BYTES,
+      });
+
     const tools = options.toolRegistry ?? new ToolRegistry();
     if (!options.toolRegistry) {
       for (const tool of createJiraTools()) {
+        tools.register(tool);
+      }
+      for (const tool of createGitHubTools()) {
         tools.register(tool);
       }
     }
@@ -98,20 +128,17 @@ export class McpServerFactory {
       version: config.MCP_SERVER_VERSION,
     });
 
-    this.applyTools(server, tools, {
+    const deps = {
       config,
       logger,
       permissions,
       projects,
       jira,
-    });
-    this.applyResources(server, resources, {
-      config,
-      logger,
-      permissions,
-      projects,
-      jira,
-    });
+      github,
+    };
+
+    this.applyTools(server, tools, deps);
+    this.applyResources(server, resources, deps);
 
     logger.info("mcp_server_created", {
       name: config.MCP_SERVER_NAME,
@@ -120,6 +147,7 @@ export class McpServerFactory {
       toolCount: tools.size(),
       resourceCount: resources.size(),
       jiraConfigured: jira.isConfigured(),
+      githubConfigured: github.isConfigured(),
       projectsDir,
     });
 
@@ -132,6 +160,7 @@ export class McpServerFactory {
       tools,
       resources,
       jira,
+      github,
       server,
     };
   }
@@ -154,6 +183,7 @@ export class McpServerFactory {
       permissions: PermissionService;
       projects: ProjectContextService;
       jira: JiraService;
+      github: GitHubService;
     },
   ): void {
     for (const tool of tools.list()) {
@@ -193,7 +223,7 @@ export class McpServerFactory {
             return result;
           } catch (error) {
             const errorCode =
-              error instanceof JiraError
+              error instanceof GitHubError || error instanceof JiraError
                 ? error.code
                 : error instanceof McpError
                   ? error.code
@@ -209,7 +239,7 @@ export class McpServerFactory {
             });
 
             const message =
-              error instanceof JiraError
+              error instanceof GitHubError || error instanceof JiraError
                 ? JSON.stringify(error.toJSON())
                 : error instanceof Error
                   ? error.message
@@ -235,6 +265,7 @@ export class McpServerFactory {
       permissions: PermissionService;
       projects: ProjectContextService;
       jira: JiraService;
+      github: GitHubService;
     },
   ): void {
     for (const resource of resources.list()) {
@@ -258,6 +289,5 @@ export class McpServerFactory {
 
 function resolveDefaultProjectsDir(): string {
   const here = path.dirname(fileURLToPath(import.meta.url));
-  // dist/server -> repo root projects/
   return path.resolve(here, "../../../../projects");
 }

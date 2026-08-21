@@ -40,6 +40,13 @@ export const McpEnvSchema = z
     JIRA_EMAIL: z.preprocess(emptyToUndefined, z.string().email().optional()),
     JIRA_API_TOKEN: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
     JIRA_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
+    GITHUB_TOKEN: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+    GITHUB_API_URL: z.preprocess(
+      emptyToUndefined,
+      z.string().url().optional().default("https://api.github.com"),
+    ),
+    GITHUB_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
+    GITHUB_MAX_FILE_BYTES: z.coerce.number().int().positive().default(100 * 1024),
   })
   .superRefine((value, ctx) => {
     const present = [value.JIRA_BASE_URL, value.JIRA_EMAIL, value.JIRA_API_TOKEN].filter(
@@ -72,6 +79,10 @@ export function loadMcpEnv(env: NodeJS.ProcessEnv = process.env): McpEnvConfig {
     JIRA_EMAIL: env.JIRA_EMAIL,
     JIRA_API_TOKEN: env.JIRA_API_TOKEN,
     JIRA_REQUEST_TIMEOUT_MS: env.JIRA_REQUEST_TIMEOUT_MS,
+    GITHUB_TOKEN: env.GITHUB_TOKEN,
+    GITHUB_API_URL: env.GITHUB_API_URL,
+    GITHUB_REQUEST_TIMEOUT_MS: env.GITHUB_REQUEST_TIMEOUT_MS,
+    GITHUB_MAX_FILE_BYTES: env.GITHUB_MAX_FILE_BYTES,
   });
 
   if (!result.success) {
@@ -89,4 +100,8 @@ export function loadMcpEnv(env: NodeJS.ProcessEnv = process.env): McpEnvConfig {
 
 export function hasJiraCredentials(config: McpEnvConfig): boolean {
   return Boolean(config.JIRA_BASE_URL && config.JIRA_EMAIL && config.JIRA_API_TOKEN);
+}
+
+export function hasGitHubCredentials(config: McpEnvConfig): boolean {
+  return Boolean(config.GITHUB_TOKEN);
 }

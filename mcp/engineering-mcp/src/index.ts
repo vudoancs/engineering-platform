@@ -1,4 +1,10 @@
-export { loadMcpEnv, McpEnvSchema, hasJiraCredentials, type McpEnvConfig } from "./config/index.js";
+export {
+  loadMcpEnv,
+  McpEnvSchema,
+  hasJiraCredentials,
+  hasGitHubCredentials,
+  type McpEnvConfig,
+} from "./config/index.js";
 export {
   McpConfigurationError,
   McpError,
@@ -27,8 +33,10 @@ export {
   type PermissionDecision,
 } from "./security/index.js";
 export {
+  createGitHubTools,
   createJiraTools,
   createToolContext,
+  GITHUB_TOOL_NAMES,
   JIRA_TOOL_NAMES,
   type EngineeringTool,
   type ToolContext,
@@ -47,3 +55,20 @@ export {
   JiraUnavailableError,
   JiraValidationError,
 } from "./integrations/jira/index.js";
+export {
+  GitHubClient,
+  GitHubService,
+  createGitHubClientFromEnv,
+  GitHubAuthenticationError,
+  GitHubBinaryContentError,
+  GitHubConfigurationError,
+  GitHubError,
+  GitHubFileTooLargeError,
+  GitHubNotFoundError,
+  GitHubProjectBoundaryError,
+  GitHubRateLimitError,
+  GitHubRepositoryBoundaryError,
+  GitHubTimeoutError,
+  GitHubUnavailableError,
+  GitHubValidationError,
+} from "./integrations/github/index.js";

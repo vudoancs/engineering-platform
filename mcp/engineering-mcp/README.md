@@ -9,7 +9,7 @@ This package is an AI access layer. It is **not** a Jira/GitHub/Confluence datab
 `engineering-mcp` exposes project-aware tools for engineering systems. Current scope:
 
 - Jira (READ-ONLY)
-- GitHub (planned)
+- GitHub (READ-ONLY)
 - Confluence (planned)
 - Engineering Intelligence (planned)
 - Governance (planned)
@@ -25,7 +25,7 @@ ProjectConfigService (platform)
     ↓
 Integrations
     ├── Jira (READ-ONLY)
-    ├── GitHub (planned)
+    ├── GitHub (READ-ONLY)
     └── Confluence (planned)
 ```
 
@@ -37,6 +37,7 @@ The server does **not** hard-code project names. It resolves configuration throu
 
 ```ts
 projectConfigService.getJiraConfig(projectId)
+projectConfigService.getGithubConfig(projectId)
 ```
 
 Adding a project only requires `projects/<project-id>.yaml` in the platform repo.
@@ -110,6 +111,74 @@ Requesting `CLUBSYNC-123` with `projectId: "kygo"` is rejected.
 - Conflicting JQL `project` clauses are rejected
 - `project in (...)` with multiple projects is rejected
 
+## GitHub integration (READ-ONLY v1)
+
+GitHub is the source of truth for code delivery.
+
+- `projectId` determines allowed repositories via project YAML
+- repository access is project-scoped
+- GitHub integration is **READ-ONLY** in v1
+- Credentials come from environment variables, never from project YAML
+
+### Environment
+
+```env
+GITHUB_TOKEN=
+GITHUB_API_URL=https://api.github.com
+GITHUB_REQUEST_TIMEOUT_MS=10000
+GITHUB_MAX_FILE_BYTES=102400
+```
+
+The MCP server starts even when GitHub credentials are omitted. GitHub tools then return a clear configuration error.
+
+### Tools
+
+| Tool | Purpose |
+|------|---------|
+| `github_list_repositories` | List allowlisted repositories for a project |
+| `github_get_repository` | Get repository details |
+| `github_list_branches` | List branches |
+| `github_get_branch` | Get a branch |
+| `github_list_commits` | List commits |
+| `github_get_commit` | Get a commit (no patch content) |
+| `github_list_pull_requests` | List pull requests |
+| `github_get_pull_request` | Get a pull request |
+| `github_list_pull_request_reviews` | List PR reviews |
+| `github_get_pull_request_checks` | Get CI/check-run status for a PR |
+| `github_get_file` | Get a text file (size-limited) |
+| `github_list_contributors` | List contributors |
+
+Write tools (create/update/merge PR, push commits, etc.) are intentionally not implemented.
+
+### Example calls
+
+`github_list_pull_requests`
+
+```json
+{
+  "projectId": "kygo",
+  "repository": "kygo",
+  "state": "open",
+  "perPage": 20
+}
+```
+
+`github_get_pull_request_checks`
+
+```json
+{
+  "projectId": "kygo",
+  "repository": "kygo",
+  "pullRequestNumber": 123
+}
+```
+
+### Repository isolation
+
+- Only repositories listed in `projects/<projectId>.yaml` are accessible
+- `projectId: kygo` + `repository: clubsync` is rejected when not allowlisted
+- Organization and repository routing come from `ProjectConfigService`
+
 ## Read-only mode
 
 Default:
@@ -125,14 +194,14 @@ MCP_READ_ONLY=true
 | DELETE  | denied                                    |
 | EXECUTE | denied                                    |
 
-Jira tools in this phase only require `READ`.
+Jira and GitHub tools in this phase only require `READ`.
 
 ## Security model
 
 - Credentials never belong in project YAML files
 - Do not log tokens, passwords, or authorization headers
 - Write/delete/execute are denied by default
-- Jira tools enforce project boundary checks
+- Jira and GitHub tools enforce project/repository boundary checks
 
 ## How to run locally
 
@@ -172,7 +241,9 @@ Labeled as examples — verify against your client's current docs before using i
         "LOG_LEVEL": "info",
         "JIRA_BASE_URL": "https://your-domain.atlassian.net",
         "JIRA_EMAIL": "you@example.com",
-        "JIRA_API_TOKEN": "your-token"
+        "JIRA_API_TOKEN": "your-token",
+        "GITHUB_TOKEN": "your-github-token",
+        "GITHUB_API_URL": "https://api.github.com"
       }
     }
   }
@@ -193,7 +264,9 @@ Labeled as examples — verify against your client's current docs before using i
         "MCP_READ_ONLY": "true",
         "JIRA_BASE_URL": "https://your-domain.atlassian.net",
         "JIRA_EMAIL": "you@example.com",
-        "JIRA_API_TOKEN": "your-token"
+        "JIRA_API_TOKEN": "your-token",
+        "GITHUB_TOKEN": "your-github-token",
+        "GITHUB_API_URL": "https://api.github.com"
       }
     }
   }
