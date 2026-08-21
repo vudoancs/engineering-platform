@@ -1,0 +1,23 @@
+# Governance defaults. Fail closed — never silently allow.
+version: 1
+
+defaults:
+  unknownAction: DENY
+  missingPolicy: DENY
+  failClosed: true
+
+security:
+  readOnlyByDefault: true
+
+approval:
+  enabled: true
+
+# Project-scoped overrides (abstraction for future use).
+# Complex per-project policy matrices are not evaluated yet.
+projects:
+  default:
+    allowWrite: false
+  kygo:
+    allowWrite: false
+  clubsync:
+    allowWrite: false

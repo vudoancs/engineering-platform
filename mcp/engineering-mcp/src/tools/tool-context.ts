@@ -1,9 +1,11 @@
 import { randomUUID } from "node:crypto";
+import type { GovernanceService } from "engineering-platform/governance";
 import type { McpEnvConfig } from "../config/env.config.js";
 import type { ConfluenceService } from "../integrations/confluence/confluence.service.js";
 import type { GitHubService } from "../integrations/github/github.service.js";
 import type { JiraService } from "../integrations/jira/jira.service.js";
 import type { PermissionService } from "../security/permission.service.js";
+import type { EngineeringService } from "../services/engineering/engineering.service.js";
 import type { Logger } from "../services/logger.js";
 import type { ProjectContextService } from "../services/project-context.service.js";
 
@@ -21,6 +23,8 @@ export interface ToolContext {
   jira: JiraService | null;
   github: GitHubService | null;
   confluence: ConfluenceService | null;
+  engineering: EngineeringService | null;
+  governance: GovernanceService | null;
 }
 
 export interface CreateToolContextInput {
@@ -31,6 +35,8 @@ export interface CreateToolContextInput {
   jira?: JiraService | null;
   github?: GitHubService | null;
   confluence?: ConfluenceService | null;
+  engineering?: EngineeringService | null;
+  governance?: GovernanceService | null;
   projectId?: string;
   requestId?: string;
 }
@@ -46,5 +52,7 @@ export function createToolContext(input: CreateToolContextInput): ToolContext {
     jira: input.jira ?? null,
     github: input.github ?? null,
     confluence: input.confluence ?? null,
+    engineering: input.engineering ?? null,
+    governance: input.governance ?? null,
   };
 }

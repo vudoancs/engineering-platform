@@ -5,3 +5,12 @@ export {
   type ProjectContext,
   type ProjectContextServiceOptions,
 } from "./project-context.service.js";
+export {
+  EngineeringService,
+  DeliveryService,
+  SprintService,
+  TeamService,
+  RiskService,
+  type EngineeringServiceOptions,
+  type ProjectStatus,
+} from "./engineering/index.js";

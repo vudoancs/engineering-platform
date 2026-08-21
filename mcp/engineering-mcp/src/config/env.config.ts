@@ -36,6 +36,7 @@ export const McpEnvSchema = z
     MCP_ALLOW_GITHUB_WRITE: booleanFromEnv.default(false),
     MCP_ALLOW_CONFLUENCE_WRITE: booleanFromEnv.default(false),
     PROJECTS_DIR: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+    POLICIES_DIR: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
     JIRA_BASE_URL: z.preprocess(emptyToUndefined, z.string().url().optional()),
     JIRA_EMAIL: z.preprocess(emptyToUndefined, z.string().email().optional()),
     JIRA_API_TOKEN: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
@@ -56,6 +57,11 @@ export const McpEnvSchema = z
       .int()
       .positive()
       .default(200 * 1024),
+    PR_STALE_HOURS: z.coerce.number().int().positive().default(48),
+    PR_HIGH_RISK_HOURS: z.coerce.number().int().positive().default(72),
+    PR_LARGE_CHANGES: z.coerce.number().int().positive().default(500),
+    PR_REVIEW_WAITING_HOURS: z.coerce.number().int().positive().default(24),
+    ENGINEERING_STALE_DAYS: z.coerce.number().int().positive().default(7),
   })
   .superRefine((value, ctx) => {
     const jiraPresent = [value.JIRA_BASE_URL, value.JIRA_EMAIL, value.JIRA_API_TOKEN].filter(
@@ -98,6 +104,7 @@ export function loadMcpEnv(env: NodeJS.ProcessEnv = process.env): McpEnvConfig {
     MCP_ALLOW_GITHUB_WRITE: env.MCP_ALLOW_GITHUB_WRITE,
     MCP_ALLOW_CONFLUENCE_WRITE: env.MCP_ALLOW_CONFLUENCE_WRITE,
     PROJECTS_DIR: env.PROJECTS_DIR,
+    POLICIES_DIR: env.POLICIES_DIR,
     JIRA_BASE_URL: env.JIRA_BASE_URL,
     JIRA_EMAIL: env.JIRA_EMAIL,
     JIRA_API_TOKEN: env.JIRA_API_TOKEN,
@@ -111,6 +118,11 @@ export function loadMcpEnv(env: NodeJS.ProcessEnv = process.env): McpEnvConfig {
     CONFLUENCE_API_TOKEN: env.CONFLUENCE_API_TOKEN,
     CONFLUENCE_REQUEST_TIMEOUT_MS: env.CONFLUENCE_REQUEST_TIMEOUT_MS,
     CONFLUENCE_MAX_PAGE_SIZE_BYTES: env.CONFLUENCE_MAX_PAGE_SIZE_BYTES,
+    PR_STALE_HOURS: env.PR_STALE_HOURS,
+    PR_HIGH_RISK_HOURS: env.PR_HIGH_RISK_HOURS,
+    PR_LARGE_CHANGES: env.PR_LARGE_CHANGES,
+    PR_REVIEW_WAITING_HOURS: env.PR_REVIEW_WAITING_HOURS,
+    ENGINEERING_STALE_DAYS: env.ENGINEERING_STALE_DAYS,
   });
 
   if (!result.success) {
