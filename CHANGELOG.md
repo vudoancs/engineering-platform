@@ -9,21 +9,22 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- Controlled Write MCP + Execution Guard (`src/execution`, `engineering-platform/execution`)
-  - Enabled: `github_create_branch`, `github_create_pull_request`, `jira_update_issue`
-  - Disabled (not registered): merge, confluence update, deploy, database migration
-  - Fail-closed guard: project boundary, agent allowlist, governance, approval lookup, idempotency, dry-run
-- GitHub/Jira write helpers (`github.write.ts`, `jira.write.ts`); Confluence write stub (not exposed)
-- Developer agent `controlled-write` profile with create-branch / create-PR tools
-- Slack message helpers for PR created / Jira approval / disabled merge (no Slack execution)
+- AI Cost Governance (`src/cost`, `engineering-platform/cost`)
+  - Usage events, configurable provider pricing, micro-USD cost calculation
+  - Budget policies (`policies/cost-limits.yaml`) with GLOBAL/PROJECT/MEMBER/AGENT hierarchy
+  - Pre-execution budget ALLOW/WARNING/BLOCK; post-execution idempotent usage recording
+  - MCP READ-ONLY tools: `engineering_get_ai_usage|cost|budget|cost_by_*`
+  - Slack cost command parser/helpers (no auto-send / no scheduler)
+- Policies: `provider-pricing.yaml`, `cost-limits.yaml` (placeholders)
 
 ### Changed
 
-- `jira-to-pr` workflow: create-branch + create-PR enabled; merge remains disabled
-- README: Controlled Write Operations section
+- README: AI Cost Governance section
+- engineering-manager / developer agent allowlists include cost report tools
 
 ### Previously in this section (shipped)
 
+- Controlled Write MCP + Execution Guard
 - Workflow orchestration layer and READ-ONLY workflow MCP tools (`WORKFLOWS_DIR`)
 
 ## [0.1.0] - 2026-08-21

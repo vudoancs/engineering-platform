@@ -1,0 +1,30 @@
+# Placeholder AI cost limits — NOT final business limits.
+# usageRetentionDays documents retention policy only (no cleanup job yet).
+
+usageRetentionDays: 90
+
+warningThresholdPercent: 80
+blockThresholdPercent: 100
+
+global:
+  dailyLimitUsd: 20
+  weeklyLimitUsd: 100
+  monthlyLimitUsd: 300
+
+projects:
+  kygo:
+    dailyLimitUsd: 10
+    monthlyLimitUsd: 150
+  clubsync:
+    dailyLimitUsd: 10
+    monthlyLimitUsd: 150
+
+agents:
+  developer:
+    dailyLimitUsd: 10
+  reviewer:
+    dailyLimitUsd: 5
+  engineering-manager:
+    dailyLimitUsd: 5
+
+members: {}

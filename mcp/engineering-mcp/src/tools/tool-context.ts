@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { AgentService } from "engineering-platform/agents";
+import type { CostGovernance } from "engineering-platform/cost";
 import type { ExecutionService } from "engineering-platform/execution";
 import type { GovernanceService } from "engineering-platform/governance";
 import type { WorkflowService } from "engineering-platform/workflows";
@@ -31,6 +32,7 @@ export interface ToolContext {
   agents: AgentService | null;
   workflows: WorkflowService | null;
   execution: ExecutionService | null;
+  cost: CostGovernance | null;
 }
 
 export interface CreateToolContextInput {
@@ -46,6 +48,7 @@ export interface CreateToolContextInput {
   agents?: AgentService | null;
   workflows?: WorkflowService | null;
   execution?: ExecutionService | null;
+  cost?: CostGovernance | null;
   projectId?: string;
   requestId?: string;
 }
@@ -66,5 +69,6 @@ export function createToolContext(input: CreateToolContextInput): ToolContext {
     agents: input.agents ?? null,
     workflows: input.workflows ?? null,
     execution: input.execution ?? null,
+    cost: input.cost ?? null,
   };
 }

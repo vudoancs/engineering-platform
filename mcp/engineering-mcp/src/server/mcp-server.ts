@@ -14,6 +14,11 @@ import {
   type ExecutionService as ExecutionServiceType,
 } from "engineering-platform/execution";
 import {
+  CostError,
+  CostGovernance,
+  type CostGovernance as CostGovernanceType,
+} from "engineering-platform/cost";
+import {
   GovernanceError,
   GovernanceService,
   type GovernanceService as GovernanceServiceType,
@@ -55,6 +60,7 @@ import { ProjectContextService } from "../services/project-context.service.js";
 import { createConfluenceTools } from "../tools/confluence/index.js";
 import { createEngineeringTools } from "../tools/engineering/index.js";
 import { createGovernanceTools } from "../tools/governance/index.js";
+import { createCostTools } from "../tools/cost/cost.tools.js";
 import { createGitHubTools } from "../tools/github/index.js";
 import { createGitHubWriteTools } from "../tools/github/github.write.tools.js";
 import { createJiraTools } from "../tools/jira/index.js";
@@ -79,6 +85,7 @@ export interface EngineeringMcpRuntime {
   agents: AgentServiceType;
   workflows: WorkflowServiceType;
   execution: ExecutionServiceType;
+  cost: CostGovernanceType;
   server: McpServer;
 }
 
@@ -99,6 +106,7 @@ export interface McpServerFactoryOptions {
   agentService?: AgentServiceType;
   workflowService?: WorkflowServiceType;
   executionService?: ExecutionServiceType;
+  costGovernance?: CostGovernanceType;
 }
 
 /**
@@ -154,6 +162,10 @@ export class McpServerFactory {
         policiesDir,
         isProjectKnown,
       });
+
+    const cost =
+      options.costGovernance ??
+      CostGovernance.loadFromDirectory(policiesDir);
 
     const agents =
       options.agentService ??
@@ -326,6 +338,9 @@ export class McpServerFactory {
       for (const tool of createGovernanceTools()) {
         tools.register(tool);
       }
+      for (const tool of createCostTools()) {
+        tools.register(tool);
+      }
     }
 
     const resources = options.resourceRegistry ?? new ResourceRegistry();
@@ -348,6 +363,7 @@ export class McpServerFactory {
       agents,
       workflows,
       execution,
+      cost,
     };
 
     this.applyTools(server, tools, deps);
@@ -387,6 +403,7 @@ export class McpServerFactory {
       agents,
       workflows,
       execution,
+      cost,
       server,
     };
   }
@@ -416,6 +433,7 @@ export class McpServerFactory {
       agents: AgentServiceType;
       workflows: WorkflowServiceType;
       execution: ExecutionServiceType;
+      cost: CostGovernanceType;
     },
   ): void {
     for (const tool of tools.list()) {
@@ -455,6 +473,7 @@ export class McpServerFactory {
             return result;
           } catch (error) {
             const errorCode =
+              error instanceof CostError ||
               error instanceof ExecutionError ||
               error instanceof GovernanceError ||
               error instanceof EngineeringError ||
@@ -476,6 +495,7 @@ export class McpServerFactory {
             });
 
             const message =
+              error instanceof CostError ||
               error instanceof ExecutionError ||
               error instanceof GovernanceError ||
               error instanceof EngineeringError ||
@@ -514,6 +534,7 @@ export class McpServerFactory {
       agents: AgentServiceType;
       workflows: WorkflowServiceType;
       execution: ExecutionServiceType;
+      cost: CostGovernanceType;
     },
   ): void {
     for (const resource of resources.list()) {
