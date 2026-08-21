@@ -5,6 +5,7 @@ import { EngineeringError } from "../../services/engineering/engineering.errors.
 import type { EngineeringService } from "../../services/engineering/engineering.service.js";
 import type { EngineeringTool } from "../types.js";
 import type { ToolContext } from "../tool-context.js";
+import type { WorkflowService } from "engineering-platform/workflows";
 
 function jsonResult(data: unknown): CallToolResult {
   return {
@@ -28,6 +29,15 @@ function requireAgents(context: ToolContext): AgentService {
     });
   }
   return context.agents;
+}
+
+function requireWorkflows(context: ToolContext): WorkflowService {
+  if (!context.workflows) {
+    throw new EngineeringError("Workflow service is unavailable in this runtime.", {
+      code: "ENGINEERING_ERROR",
+    });
+  }
+  return context.workflows;
 }
 
 function withReadPermission(tool: EngineeringTool): EngineeringTool {
@@ -161,6 +171,56 @@ export function createEngineeringTools(): EngineeringTool[] {
         return jsonResult({ agents });
       },
     }),
+    withReadPermission({
+      name: "engineering_list_workflows",
+      description:
+        "List configured workflows (id, name, version, description, stepCount). READ-ONLY.",
+      inputSchema: z.object({}),
+      execute: async (context) => {
+        const workflows = requireWorkflows(context).listWorkflows();
+        return jsonResult({ workflows });
+      },
+    }),
+    withReadPermission({
+      name: "engineering_get_workflow",
+      description:
+        "Get a workflow definition summary and step outline. Does not execute the workflow.",
+      inputSchema: z.object({
+        workflowId: z.string().trim().min(1),
+      }),
+      execute: async (context, input) => {
+        const parsed = z.object({ workflowId: z.string().trim().min(1) }).parse(input);
+        const wf = requireWorkflows(context).getWorkflow(parsed.workflowId);
+        return jsonResult({
+          id: wf.id,
+          name: wf.name,
+          description: wf.description,
+          version: wf.version,
+          trigger: wf.trigger,
+          steps: wf.steps.map((s) => ({
+            id: s.id,
+            type: s.type,
+            agent: s.agent,
+            action: s.action,
+            condition: s.condition,
+            enabled: s.enabled ?? true,
+            dependsOn: s.dependsOn ?? [],
+          })),
+        });
+      },
+    }),
+    withReadPermission({
+      name: "engineering_get_workflow_instance",
+      description:
+        "Get a workflow instance status snapshot (observability). Does not execute steps.",
+      inputSchema: z.object({
+        instanceId: z.string().trim().min(1),
+      }),
+      execute: async (context, input) => {
+        const parsed = z.object({ instanceId: z.string().trim().min(1) }).parse(input);
+        return jsonResult(requireWorkflows(context).getObservability(parsed.instanceId));
+      },
+    }),
   ];
 }
 
@@ -174,4 +234,7 @@ export const ENGINEERING_TOOL_NAMES = [
   "engineering_get_pr_status",
   "engineering_get_risk_report",
   "engineering_list_agents",
+  "engineering_list_workflows",
+  "engineering_get_workflow",
+  "engineering_get_workflow_instance",
 ] as const;

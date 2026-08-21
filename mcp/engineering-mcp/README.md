@@ -14,7 +14,7 @@ This package is an AI access layer. It is **not** a Jira/GitHub/Confluence datab
 - Engineering Intelligence (READ-ONLY aggregation)
 - Governance (deterministic policy / fail closed)
 - Agents (definitions / allowlists — no autonomous runtime)
-- Workflows (planned)
+- Workflows (deterministic state machine — no always-on workers)
 
 ## Architecture
 
@@ -297,6 +297,9 @@ ENGINEERING_STALE_DAYS=7
 | `engineering_get_pr_status` | PR review/CI/risk + Jira key correlation |
 | `engineering_get_risk_report` | Deterministic risk report with evidence |
 | `engineering_list_agents` | List configured agents (id/name/role/governanceProfile; no instructions) |
+| `engineering_list_workflows` | List workflow definitions |
+| `engineering_get_workflow` | Get workflow definition outline |
+| `engineering_get_workflow_instance` | Get instance observability snapshot |
 
 ### Example calls
 
@@ -358,6 +361,17 @@ External Systems
 | `reviewer` | Structured PR review (does not approve/merge) |
 
 MCP tool `engineering_list_agents` returns summaries only. Tool allowlists are enforced in `AgentService` / `AgentPolicy` (code), not only by prompts. Set `AGENTS_DIR` to override the default path.
+
+## Workflows
+
+Lightweight state-machine workflows under platform `workflows/`. Explicit one-step execution — no always-on workers.
+
+| Workflow | Purpose |
+|------|---------|
+| `jira-to-pr` | Ticket → plan → approvals → PR/review/merge placeholders |
+| `pr-review` | PR + Jira + CI → Reviewer → human decision (no auto-merge) |
+
+MCP tools (READ-ONLY): `engineering_list_workflows`, `engineering_get_workflow`, `engineering_get_workflow_instance`. Set `WORKFLOWS_DIR` to override the default path. There is no execute tool yet.
 
 ## Governance
 

@@ -1,0 +1,60 @@
+id: pr-review
+
+name: Pull Request Review
+
+description: >
+  Structured PR review against Jira requirements and CI.
+  Produces a reviewer recommendation. Never merges automatically.
+
+version: 1
+
+trigger:
+  type: manual
+
+steps:
+  - id: load-pr
+    type: ACTION
+    action: github.get_pull_request
+    enabled: true
+    timeoutMs: 300000
+
+  - id: load-jira
+    type: ACTION
+    action: jira.get_issue
+    enabled: true
+    dependsOn:
+      - load-pr
+    timeoutMs: 300000
+
+  - id: load-ci
+    type: ACTION
+    action: github.get_pull_request_checks
+    enabled: true
+    dependsOn:
+      - load-pr
+    timeoutMs: 300000
+
+  - id: review
+    type: AGENT
+    agent: reviewer
+    dependsOn:
+      - load-pr
+      - load-jira
+      - load-ci
+    timeoutMs: 300000
+
+  - id: risk-analysis
+    type: CONDITION
+    condition: RISK_LTE_MEDIUM
+    dependsOn:
+      - review
+
+  - id: human-decision
+    type: APPROVAL
+    dependsOn:
+      - risk-analysis
+    approval:
+      required: true
+      minimumApprovers: 1
+      reason: Human decision on PR (approve / request changes / reject). No automatic merge.
+      riskLevel: MEDIUM

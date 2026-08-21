@@ -6,6 +6,8 @@ MCP is one component of the platform. Agents are **definitions and policy** (not
 
 Projects such as Kygo and ClubSync can use this platform through project-specific configuration under `projects/`.
 
+See **[CHANGELOG.md](./CHANGELOG.md)** for notable changes (Keep a Changelog). Update it with every meaningful change.
+
 ## Project configuration
 
 Routing metadata lives in `projects/<project-id>.yaml` and is loaded by `src/config/project-config`.
@@ -43,3 +45,35 @@ External Systems
 Security is layered: agent tool allowlist + project boundary (`ProjectConfigService`) + Governance. Any failure DENY.
 
 Agents are invoked explicitly. There is no autonomous loop, swarm framework, or LLM runtime in this package.
+
+## Workflows
+
+A workflow is a **deterministic sequence of steps** (state machine), not a distributed orchestrator.
+
+```
+Jira
+ ↓
+Developer
+ ↓
+Approval
+ ↓
+Implementation
+ ↓
+PR
+ ↓
+Reviewer
+ ↓
+Approval
+ ↓
+Merge
+ ↓
+Jira
+```
+
+- Workflows are explicit: `run(instanceId)` advances **one** step
+- Workflows are auditable (AuditService events)
+- Workflows stop at approval gates until humans approve/reject
+- Workflows do not run continuously, spawn agents, or require Gas Town/Gas City
+- Write actions are declared but disabled / `NOT_IMPLEMENTED` until write MCP tools exist
+
+Definitions: `workflows/*/workflow.yaml` · Runtime: `engineering-platform/workflows`

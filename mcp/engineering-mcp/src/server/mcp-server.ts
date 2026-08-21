@@ -14,6 +14,10 @@ import {
   type GovernanceService as GovernanceServiceType,
 } from "engineering-platform/governance";
 import {
+  WorkflowService,
+  type WorkflowService as WorkflowServiceType,
+} from "engineering-platform/workflows";
+import {
   hasConfluenceCredentials,
   hasGitHubCredentials,
   hasJiraCredentials,
@@ -65,6 +69,7 @@ export interface EngineeringMcpRuntime {
   engineering: EngineeringService;
   governance: GovernanceServiceType;
   agents: AgentServiceType;
+  workflows: WorkflowServiceType;
   server: McpServer;
 }
 
@@ -73,6 +78,7 @@ export interface McpServerFactoryOptions {
   projectsDir?: string;
   policiesDir?: string;
   agentsDir?: string;
+  workflowsDir?: string;
   logger?: Logger;
   toolRegistry?: ToolRegistry;
   resourceRegistry?: ResourceRegistry;
@@ -82,6 +88,7 @@ export interface McpServerFactoryOptions {
   engineeringService?: EngineeringService;
   governanceService?: GovernanceServiceType;
   agentService?: AgentServiceType;
+  workflowService?: WorkflowServiceType;
 }
 
 /**
@@ -111,6 +118,11 @@ export class McpServerFactory {
       options.agentsDir ??
       config.AGENTS_DIR ??
       resolveDefaultAgentsDir();
+
+    const workflowsDir =
+      options.workflowsDir ??
+      config.WORKFLOWS_DIR ??
+      resolveDefaultWorkflowsDir();
 
     const projects = ProjectContextService.createDefault(projectsDir);
     const permissions = new PermissionService({ readOnly: config.MCP_READ_ONLY });
@@ -142,6 +154,15 @@ export class McpServerFactory {
           governance,
           isProjectKnown,
         },
+      });
+
+    const workflows =
+      options.workflowService ??
+      WorkflowService.loadFromDirectory({
+        workflowsDir,
+        agentService: agents,
+        governance,
+        isProjectKnown,
       });
 
     const jira =
@@ -254,6 +275,7 @@ export class McpServerFactory {
       engineering,
       governance,
       agents,
+      workflows,
     };
 
     this.applyTools(server, tools, deps);
@@ -270,9 +292,11 @@ export class McpServerFactory {
       confluenceConfigured: confluence.isConfigured(),
       governanceFailClosed: governance.isFailClosed(),
       agentCount: agents.listAgents().length,
+      workflowCount: workflows.listWorkflows().length,
       projectsDir,
       policiesDir,
       agentsDir,
+      workflowsDir,
     });
 
     return {
@@ -289,6 +313,7 @@ export class McpServerFactory {
       engineering,
       governance,
       agents,
+      workflows,
       server,
     };
   }
@@ -316,6 +341,7 @@ export class McpServerFactory {
       engineering: EngineeringService;
       governance: GovernanceServiceType;
       agents: AgentServiceType;
+      workflows: WorkflowServiceType;
     },
   ): void {
     for (const tool of tools.list()) {
@@ -410,6 +436,7 @@ export class McpServerFactory {
       engineering: EngineeringService;
       governance: GovernanceServiceType;
       agents: AgentServiceType;
+      workflows: WorkflowServiceType;
     },
   ): void {
     for (const resource of resources.list()) {
@@ -444,4 +471,9 @@ function resolveDefaultPoliciesDir(): string {
 function resolveDefaultAgentsDir(): string {
   const here = path.dirname(fileURLToPath(import.meta.url));
   return path.resolve(here, "../../../../agents");
+}
+
+function resolveDefaultWorkflowsDir(): string {
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  return path.resolve(here, "../../../../workflows");
 }

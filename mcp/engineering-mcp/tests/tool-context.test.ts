@@ -28,6 +28,7 @@ describe("ToolContext and ProjectContext", () => {
       engineering: null,
       governance: null,
       agents: null,
+      workflows: null,
     });
 
     expect(context.requestId.length).toBeGreaterThan(0);

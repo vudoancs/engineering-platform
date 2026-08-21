@@ -1,0 +1,29 @@
+---
+description: Always update CHANGELOG.md when making notable project changes
+alwaysApply: true
+---
+
+# Changelog updates
+
+Whenever you make a **notable** change to this repository (feature, fix, breaking change, docs that affect operators, new MCP tools, new agents/workflows/policies), update [`CHANGELOG.md`](CHANGELOG.md) in the same change set.
+
+## Rules
+
+1. Put new entries under `## [Unreleased]` until a version is tagged/released.
+2. Use Keep a Changelog sections: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
+3. Write concise bullets focused on **user/operator impact**, not every file touch.
+4. Do **not** invent a version bump unless the user asks; keep work in `[Unreleased]`.
+5. After a release/tag, move `[Unreleased]` items into a dated `## [x.y.z] - YYYY-MM-DD` section and leave a fresh empty `[Unreleased]`.
+6. Skip changelog for pure chores with no observable effect (typo-only in comments, local WIP renames) unless the user asks.
+
+## Example
+
+```markdown
+## [Unreleased]
+
+### Added
+- Short description of the new capability
+
+### Fixed
+- Short description of the bugfix
+```
