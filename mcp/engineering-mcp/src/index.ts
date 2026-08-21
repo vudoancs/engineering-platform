@@ -1,4 +1,4 @@
-export { loadMcpEnv, McpEnvSchema, type McpEnvConfig } from "./config/index.js";
+export { loadMcpEnv, McpEnvSchema, hasJiraCredentials, type McpEnvConfig } from "./config/index.js";
 export {
   McpConfigurationError,
   McpError,
@@ -27,7 +27,23 @@ export {
   type PermissionDecision,
 } from "./security/index.js";
 export {
+  createJiraTools,
   createToolContext,
+  JIRA_TOOL_NAMES,
   type EngineeringTool,
   type ToolContext,
 } from "./tools/index.js";
+export {
+  JiraClient,
+  JiraService,
+  createJiraClientFromEnv,
+  JiraAuthenticationError,
+  JiraConfigurationError,
+  JiraError,
+  JiraNotFoundError,
+  JiraProjectBoundaryError,
+  JiraRateLimitError,
+  JiraTimeoutError,
+  JiraUnavailableError,
+  JiraValidationError,
+} from "./integrations/jira/index.js";

@@ -22,6 +22,7 @@ describe("ToolContext and ProjectContext", () => {
       permissions: new PermissionService({ readOnly: true }),
       projects: ProjectContextService.createDefault(projectsDir),
       projectId: "kygo",
+      jira: null,
     });
 
     expect(context.requestId.length).toBeGreaterThan(0);

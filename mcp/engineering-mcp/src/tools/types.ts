@@ -6,9 +6,9 @@ import type { ToolContext } from "./tool-context.js";
  * Internal tool definition used by ToolRegistry.
  * Handlers are registered onto the official MCP SDK McpServer.
  */
-export interface EngineeringTool<TInput = unknown> {
+export interface EngineeringTool {
   name: string;
   description: string;
-  inputSchema: z.ZodType<TInput>;
-  execute: (context: ToolContext, input: TInput) => Promise<CallToolResult> | CallToolResult;
+  inputSchema: z.ZodType;
+  execute: (context: ToolContext, input: unknown) => Promise<CallToolResult> | CallToolResult;
 }

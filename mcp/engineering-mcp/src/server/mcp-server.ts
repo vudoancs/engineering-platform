@@ -3,12 +3,22 @@ import { fileURLToPath } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { loadMcpEnv, type McpEnvConfig } from "../config/env.config.js";
+import {
+  hasJiraCredentials,
+  loadMcpEnv,
+  type McpEnvConfig,
+} from "../config/env.config.js";
 import { McpError } from "../errors/mcp-errors.js";
+import { JiraError } from "../integrations/jira/jira.errors.js";
+import {
+  createJiraClientFromEnv,
+  JiraService,
+} from "../integrations/jira/jira.service.js";
 import { PermissionService } from "../security/permission.service.js";
 import { HealthService } from "../services/health.service.js";
 import { Logger } from "../services/logger.js";
 import { ProjectContextService } from "../services/project-context.service.js";
+import { createJiraTools } from "../tools/jira/index.js";
 import { createToolContext } from "../tools/tool-context.js";
 import { ResourceRegistry } from "./resource-registry.js";
 import { ToolRegistry } from "./tool-registry.js";
@@ -21,6 +31,7 @@ export interface EngineeringMcpRuntime {
   health: HealthService;
   tools: ToolRegistry;
   resources: ResourceRegistry;
+  jira: JiraService;
   server: McpServer;
 }
 
@@ -30,6 +41,7 @@ export interface McpServerFactoryOptions {
   logger?: Logger;
   toolRegistry?: ToolRegistry;
   resourceRegistry?: ResourceRegistry;
+  jiraService?: JiraService;
 }
 
 /**
@@ -53,7 +65,32 @@ export class McpServerFactory {
     const projects = ProjectContextService.createDefault(projectsDir);
     const permissions = new PermissionService({ readOnly: config.MCP_READ_ONLY });
     const health = new HealthService();
+
+    const jira =
+      options.jiraService ??
+      new JiraService({
+        projectConfigService: projects.getProjectConfigService(),
+        client: hasJiraCredentials(config)
+          ? createJiraClientFromEnv({
+              ...(config.JIRA_BASE_URL !== undefined
+                ? { JIRA_BASE_URL: config.JIRA_BASE_URL }
+                : {}),
+              ...(config.JIRA_EMAIL !== undefined ? { JIRA_EMAIL: config.JIRA_EMAIL } : {}),
+              ...(config.JIRA_API_TOKEN !== undefined
+                ? { JIRA_API_TOKEN: config.JIRA_API_TOKEN }
+                : {}),
+              JIRA_REQUEST_TIMEOUT_MS: config.JIRA_REQUEST_TIMEOUT_MS,
+            })
+          : null,
+      });
+
     const tools = options.toolRegistry ?? new ToolRegistry();
+    if (!options.toolRegistry) {
+      for (const tool of createJiraTools()) {
+        tools.register(tool);
+      }
+    }
+
     const resources = options.resourceRegistry ?? new ResourceRegistry();
 
     const server = new McpServer({
@@ -66,12 +103,14 @@ export class McpServerFactory {
       logger,
       permissions,
       projects,
+      jira,
     });
     this.applyResources(server, resources, {
       config,
       logger,
       permissions,
       projects,
+      jira,
     });
 
     logger.info("mcp_server_created", {
@@ -80,6 +119,7 @@ export class McpServerFactory {
       readOnly: config.MCP_READ_ONLY,
       toolCount: tools.size(),
       resourceCount: resources.size(),
+      jiraConfigured: jira.isConfigured(),
       projectsDir,
     });
 
@@ -91,6 +131,7 @@ export class McpServerFactory {
       health,
       tools,
       resources,
+      jira,
       server,
     };
   }
@@ -112,6 +153,7 @@ export class McpServerFactory {
       logger: Logger;
       permissions: PermissionService;
       projects: ProjectContextService;
+      jira: JiraService;
     },
   ): void {
     for (const tool of tools.list()) {
@@ -150,7 +192,12 @@ export class McpServerFactory {
             });
             return result;
           } catch (error) {
-            const errorCode = error instanceof McpError ? error.code : "MCP_ERROR";
+            const errorCode =
+              error instanceof JiraError
+                ? error.code
+                : error instanceof McpError
+                  ? error.code
+                  : "MCP_ERROR";
             deps.logger.logToolInvocation({
               requestId: context.requestId,
               toolName: tool.name,
@@ -162,7 +209,11 @@ export class McpServerFactory {
             });
 
             const message =
-              error instanceof Error ? error.message : "Unexpected tool execution error";
+              error instanceof JiraError
+                ? JSON.stringify(error.toJSON())
+                : error instanceof Error
+                  ? error.message
+                  : "Unexpected tool execution error";
 
             const failure: CallToolResult = {
               isError: true,
@@ -183,6 +234,7 @@ export class McpServerFactory {
       logger: Logger;
       permissions: PermissionService;
       projects: ProjectContextService;
+      jira: JiraService;
     },
   ): void {
     for (const resource of resources.list()) {

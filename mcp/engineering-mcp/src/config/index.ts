@@ -1,1 +1,1 @@
-export { loadMcpEnv, McpEnvSchema, type McpEnvConfig } from "./env.config.js";
+export { loadMcpEnv, McpEnvSchema, hasJiraCredentials, type McpEnvConfig } from "./env.config.js";

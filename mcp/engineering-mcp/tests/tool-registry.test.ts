@@ -4,7 +4,7 @@ import { McpError, McpToolNotFoundError } from "../src/errors/mcp-errors.js";
 import { ToolRegistry } from "../src/server/tool-registry.js";
 import type { EngineeringTool } from "../src/tools/types.js";
 
-const demoTool: EngineeringTool<{ value: string }> = {
+const demoTool: EngineeringTool = {
   name: "demo",
   description: "demo tool",
   inputSchema: z.object({ value: z.string() }),

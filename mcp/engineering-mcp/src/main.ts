@@ -11,7 +11,9 @@ async function main(): Promise<void> {
     runtime.logger.info("mcp_dry_run_ok", {
       status: health.status,
       toolCount: runtime.tools.size(),
+      toolNames: runtime.tools.list().map((tool) => tool.name),
       resourceCount: runtime.resources.size(),
+      jiraConfigured: runtime.jira.isConfigured(),
       name: runtime.config.MCP_SERVER_NAME,
       version: runtime.config.MCP_SERVER_VERSION,
     });
