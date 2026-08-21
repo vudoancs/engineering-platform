@@ -1,0 +1,91 @@
+id: jira-to-pr
+
+name: Jira to Pull Request
+
+description: >
+  Turn an approved Jira task into a reviewed Pull Request.
+  Write steps are declared but disabled until write MCP tools exist.
+
+version: 1
+
+trigger:
+  type: manual
+
+steps:
+  - id: load-ticket
+    type: ACTION
+    action: jira.get_issue
+    enabled: true
+    timeoutMs: 300000
+
+  - id: analyze
+    type: AGENT
+    agent: developer
+    dependsOn:
+      - load-ticket
+    timeoutMs: 300000
+
+  - id: plan
+    type: AGENT
+    agent: developer
+    dependsOn:
+      - analyze
+    timeoutMs: 300000
+
+  - id: approve-plan
+    type: APPROVAL
+    dependsOn:
+      - plan
+    approval:
+      required: true
+      minimumApprovers: 1
+      reason: Approve implementation plan before coding
+      riskLevel: MEDIUM
+
+  - id: implement
+    type: AGENT
+    agent: developer
+    dependsOn:
+      - approve-plan
+    timeoutMs: 300000
+
+  - id: create-pr
+    type: ACTION
+    action: github.create_pull_request
+    enabled: false
+    dependsOn:
+      - implement
+    timeoutMs: 300000
+
+  - id: review
+    type: AGENT
+    agent: reviewer
+    dependsOn:
+      - create-pr
+    timeoutMs: 300000
+
+  - id: approve-merge
+    type: APPROVAL
+    dependsOn:
+      - review
+    approval:
+      required: true
+      minimumApprovers: 1
+      reason: Approve merge after review
+      riskLevel: HIGH
+
+  - id: merge
+    type: ACTION
+    action: github.merge_pull_request
+    enabled: false
+    dependsOn:
+      - approve-merge
+    timeoutMs: 300000
+
+  - id: update-jira
+    type: ACTION
+    action: jira.update_issue
+    enabled: false
+    dependsOn:
+      - merge
+    timeoutMs: 300000

@@ -41,6 +41,9 @@ export const DEFAULT_KNOWN_MCP_TOOLS = [
   "engineering_get_pr_status",
   "engineering_get_risk_report",
   "engineering_list_agents",
+  "engineering_list_workflows",
+  "engineering_get_workflow",
+  "engineering_get_workflow_instance",
   // Governance
   "engineering_check_permission",
 ] as const;
